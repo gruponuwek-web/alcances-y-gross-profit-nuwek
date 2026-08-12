@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="only light">
+<meta name="supported-color-schemes" content="light">
+<title>Grupo Nuwek — Motor de Servicios y Costos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --slate:#223C36; --yellow:#F3DA5D; --orange:#FBB03B; --smoke:#F2F2F2; --white:#FFFFFF;
+    --cost:#A8402E; --cost-tint:#F3E2DD; --revenue:#1E6F5C; --revenue-tint:#DEEAE5;
+    --line:#DCDCDC; --ink:#1A1A1A; --ink-soft:#666666;
+  }
+  *{box-sizing:border-box;}
+  html{color-scheme:only light; background:#F1F0EA !important;}
+  body{
+    margin:0; background:#F1F0EA !important; color:var(--ink) !important;
+    font-family:'Open Sans',sans-serif; font-size:14px; line-height:1.5; color-scheme:only light;
+  }
+  .headf{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  header.top{position:sticky; top:0; z-index:40; background:var(--slate); color:#fff; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+  header.top .title{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px; letter-spacing:.02em;}
+  header.top .sub{font-size:11px; opacity:.7; margin-top:2px;}
+  .tabs{display:flex; gap:6px; flex-wrap:wrap;}
+  .tabbtn{font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:600; background:transparent; border:1px solid rgba(255,255,255,.3); color:#fff; padding:7px 14px; border-radius:18px; cursor:pointer;}
+  .tabbtn.active{background:var(--orange); border-color:var(--orange); color:var(--slate);}
+
+  .wrap{max-width:1180px; margin:0 auto; padding:26px 20px 80px;}
+  h2{font-family:'Space Grotesk',sans-serif; font-size:20px; margin:0 0 4px;}
+  .lead{color:var(--ink-soft); font-size:13px; margin-bottom:20px;}
+
+  table{width:100%; border-collapse:collapse; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  th{background:var(--smoke); text-align:left; font-family:'Space Grotesk',sans-serif; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); padding:9px 10px; border-bottom:1px solid var(--line);}
+  td{padding:6px 10px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  input[type=text], input[type=number], select{
+    font-family:'Open Sans',sans-serif; font-size:13px; border:1px solid var(--line); border-radius:6px; padding:6px 8px; width:100%; background:#fff;
+  }
+  input[type=number]{width:90px;}
+  .num{font-family:'IBM Plex Mono',monospace; text-align:right;}
+  .btn{font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:600; border:none; border-radius:7px; padding:8px 14px; cursor:pointer;}
+  .btn-add{background:var(--slate); color:#fff;}
+  .btn-add:hover{background:#1a2e29;}
+  .btn-del{background:transparent; color:var(--cost); font-size:16px; padding:2px 8px;}
+  .btn-del:hover{background:var(--cost-tint); border-radius:6px;}
+
+  .card{background:#fff; border-radius:14px; padding:0; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); overflow:hidden;}
+  .card-head{display:flex; align-items:center; gap:12px; padding:14px 16px; background:#E4E3DC; cursor:pointer; flex-wrap:wrap;}
+  .card-head input[type=text]{font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15px; border:none; background:transparent; padding:2px 4px; flex:1; min-width:180px;}
+  .card-head input[type=text]:focus{background:#fff; border:1px solid var(--line);}
+  .chev{font-size:12px; color:var(--ink-soft); transition:transform .15s;}
+  .card.open .chev{transform:rotate(90deg);}
+  .card-body{display:none; padding:16px;}
+  .card.open .card-body{display:block;}
+  .badge{font-family:'IBM Plex Mono',monospace; font-size:10.5px; padding:3px 9px; border-radius:20px; white-space:nowrap;}
+  .badge-mkt{background:#FCEBC5; color:#8A5A00;}
+  .badge-sales{background:#DEEAE5; color:#1E6F5C;}
+  .badge-cons{background:#E3E9E7; color:#223C36;}
+
+  .stat-row{display:flex; gap:10px; flex-wrap:wrap; margin:14px 0;}
+  .stat{background:var(--smoke); border-radius:10px; padding:10px 14px; flex:1; min-width:130px;}
+  .stat .l{font-family:'IBM Plex Mono',monospace; font-size:9.5px; text-transform:uppercase; color:var(--ink-soft); letter-spacing:.04em;}
+  .stat .v{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:19px; margin-top:2px;}
+  .stat .v.cost{color:var(--cost);} .stat .v.rev{color:var(--revenue);}
+
+  .subhead{font-family:'Space Grotesk',sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); margin:16px 0 8px;}
+  .fixedcost-row{display:flex; gap:10px; align-items:center; margin-bottom:8px; flex-wrap:wrap;}
+  .fixedcost-row label{font-size:12px; color:var(--ink-soft); min-width:210px;}
+
+  .toolbar{display:flex; justify-content:flex-end; margin-bottom:14px;}
+  .warn{background:var(--cost-tint); color:var(--cost); border-radius:8px; padding:10px 14px; font-size:12.5px; margin-bottom:16px;}
+  .note{color:var(--ink-soft); font-size:11.5px; margin-top:6px;}
+
+  select{cursor:pointer;}
+  textarea{font-family:'Open Sans',sans-serif; font-size:13px; border:1px solid var(--line); border-radius:8px; padding:10px; width:100%; resize:vertical; line-height:1.5;}
+  .subtabs{display:flex; gap:6px; margin:14px 0; border-bottom:1px solid var(--line); padding-bottom:10px;}
+  .subtabbtn{font-family:'Space Grotesk',sans-serif; font-size:11.5px; font-weight:600; background:#E4E3DC; border:1.5px solid #9C9C93; color:#3A3A35; padding:6px 12px; border-radius:16px; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.08);}
+  .subtabbtn:hover:not(.active){border-color:var(--orange); color:var(--ink);}
+  .subtabbtn.active{background:var(--slate); border-color:var(--slate); color:#fff;}
+  .hidden{display:none;}
+  .save-flag{position:fixed; bottom:16px; right:20px; font-family:'IBM Plex Mono',monospace; font-size:11px; background:var(--slate); color:#fff; padding:8px 14px; border-radius:20px; opacity:0; transition:opacity .3s; pointer-events:none;}
+  .save-flag.show{opacity:.92;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <div class="title">GRUPO NUWEK — MOTOR DE SERVICIOS Y COSTOS</div>
+    <div class="sub">Personas, servicios, bonos y alcances — todo conectado, Gross Profit en vivo</div>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tabbtn" data-tab="personas">Personas</button>
+    <button class="tabbtn" data-tab="servicios">Servicios</button>
+    <button class="tabbtn" data-tab="bonos">Bonos</button>
+    <button class="tabbtn" data-tab="resumen">Resumen financiero</button>
+    <button class="tabbtn" data-tab="proyeccion">Proyección financiera</button>
+    <button class="tabbtn" data-tab="gastos">Gastos generales</button>
+    <button class="tabbtn" data-tab="crossselling">Cross-selling</button>
+    <button class="tabbtn" data-tab="equipo">Equipo</button>
+  </div>
+</header>
+
+<div class="wrap" id="app"></div>
+<div class="save-flag" id="saveFlag">Guardado</div>
+
+<script>
+/* ============================================================
+   ESTADO
+   ============================================================ */
+const HORAS_MES = 160; // 8h x 20 días laborales — base única para toda tarifa/hora
+
+let state = {
+  nextId: 1,
+  personas: [],
+  servicios: [],
+  bonos: [],
+  proyeccionSeleccion: [], // ids de servicios incluidos en la Proyección Financiera
+  gastosGenerales: [], // licencias/software que afectan toda la operación, no un servicio en particular
+  relaciones: [], // cross-selling: servicio origen -> servicio destino, con etiqueta
+};
+
+function newId(){ return state.nextId++; }
+
+/* ---------- datos iniciales (lo confirmado hasta esta noche) ---------- */
+function seedData(){
+  const P = {};
+  function persona(nombre, area, rol, sueldo){
+    const id = newId();
+    state.personas.push({id, nombre, area, rol, sueldo});
+    P[nombre] = id;
+    return id;
+  }
+  persona('Carlos', 'Dirección General', 'Director Gral. / Capacitador', 40000);
+  persona('Daniel', 'Consultoría', 'Consultor SBOS', 15000);
+  persona('Jaime', 'Consultoría', 'Consultor SBOS', 20000);
+  persona('Michelle', 'Administración', 'Asistente / Instalaciones', 12000);
+  persona('Yunuen', 'Ventas', 'Coach de Venta (EVA+)', 15000);
+  persona('PM Redes', 'Marketing', 'Project Manager', 35000);
+  persona('Creator 1', 'Marketing', 'Content Creator', 12000);
+  persona('Creator 2', 'Marketing', 'Content Creator', 12000);
+  persona('Creator 3', 'Marketing', 'Content Creator', 14000);
+  persona('Trafficker', 'Marketing', 'Trafficker', 12000);
+
+  function servicio(nombre, categoria, precio, maxClientes, unidad, lineas, costoFijoExterno, costoVarExterno, notaExterno, extra){
+    const id = newId();
+    extra = extra || {};
+    state.servicios.push({
+      id, nombre, categoria, precio, maxClientes, unidad,
+      costoFijoExterno: costoFijoExterno||0, costoVarExterno: costoVarExterno||0, notaExterno: notaExterno||'',
+      lineas: lineas.map(l => ({id:newId(), personaId:l[0], tarea:l[1], horas:l[2], tipo:l[3]})),
+      descripcionItems: (extra.descripcion||[]).map(t => ({id:newId(), texto:t})),
+      exclusionesItems: (extra.exclusiones||[]).map(t => ({id:newId(), texto:t})),
+      addons: (extra.addons||[]).map(a => ({id:newId(), nombre:a[0], descripcion:a[1], precio:a[2], costo:a[3]})),
+      open:false, subTab:'alcance',
+    });
+    return id;
+  }
+
+  const sRedes = servicio('Gestión de Redes Sociales / Campañas', 'Marketing', 15000, 12, 'cliente', [
+    [P['PM Redes'], 'Gestión y coordinación del equipo', HORAS_MES, 'fijo'],
+    [P['Creator 1'], 'Producción de contenido', HORAS_MES, 'fijo'],
+    [P['Creator 2'], 'Producción de contenido', HORAS_MES, 'fijo'],
+    [P['Creator 3'], 'Producción de contenido', HORAS_MES, 'fijo'],
+    [P['Trafficker'], 'Gestión de pauta y campañas', HORAS_MES, 'fijo'],
+  ], 0, 0, '', {
+    descripcion: [
+      '14 piezas de contenido/mes bajo calendario de publicación (incluye videos de hasta 120 segundos dentro de esas 14 piezas, no como producción adicional)',
+      'Gestión de 3 campañas pagadas incluidas: 1 Google Ads, 1 Meta alcance/tráfico, 1 Meta mensajes a WhatsApp',
+      'Monitoreo y alertas de redes (vigilancia sin respuesta directa)',
+      '2 rondas de revisión por pieza',
+      'Creación del ADN comercial del cliente (incluye análisis de túneles de venta de la competencia)',
+      '1 reporte mensual de métricas',
+    ],
+    exclusiones: [
+      'Presupuesto de pauta (ad spend) más allá de lo incluido',
+      'Respuesta directa a comentarios/mensajes',
+      'Producción de video mayor a 120 segundos',
+      'Diseño de landing pages',
+      'Gestión de crisis fuera de horario laboral',
+    ],
+    addons: [
+      ['Red adicional (ej. TikTok)', 'Gestión de una red social fuera de Meta/Google', 1500, 0],
+      ['Pieza extra — imagen', 'Pieza de contenido adicional fuera del calendario', 600, 0],
+      ['Pieza extra — reel', 'Pieza de video adicional fuera del calendario', 900, 0],
+      ['Community management de respuesta', 'Respuesta directa a comentarios/mensajes — precio a definir', 0, 0],
+      ['Cobertura de eventos en vivo', 'Precio a definir', 0, 0],
+      ['Horario extendido / fines de semana', 'Precio a definir', 0, 0],
+    ],
+  });
+
+  servicio('Go High Level (GHL)', 'Marketing', 799, 12, 'cliente', [
+    [P['Michelle'], 'Instalación de cuenta nueva', 4.42, 'unico'],
+  ], 1700, 0, 'Licencia de plataforma (agencia) — fija, no ligada a persona', {
+    descripcion: [
+      'CRM completo, vendedores y pipelines ilimitados',
+      'WhatsApp API con 1,000 mensajes/mes incluidos',
+      'Triggers y flujo automático básico',
+      'Conexión Meta Ads + Google Ads + formularios web integrados al pipeline',
+      'Asignación inteligente de vendedores',
+      'Reportes de vendedores con snapshots',
+      'Capacitación al equipo del cliente incluida',
+    ],
+    exclusiones: [
+      'Chatbot y respuestas A/B/C',
+      'Flujos condicionales avanzados',
+      'Automatizaciones multicanal',
+      'Lógica condicional con IA',
+      'Twilio (llamadas/transcripción)',
+      'Centro de contacto/IVR',
+    ],
+    addons: [
+      ['Paquete Automatización', 'Chatbot + respuestas A/B/C + flujos condicionales', 250, 0],
+      ['Paquete Avanzado', 'Multicanal + lógica condicional avanzada + Twilio (300 min) + transcripción IA + centro de contacto', 500, 0],
+      ['Excedente WhatsApp', '$0.005/mensaje después de 1,000/mes', 0, 0],
+      ['Excedente Twilio', '$0.02/min llamada, $0.005/SMS', 0, 0],
+    ],
+  });
+
+  servicio('Capacitaciones de Venta', 'Ventas', 24500, 2, 'capacitación', [
+    [P['Carlos'], 'Entrega (12h)', 12, 'variable'],
+    [P['Carlos'], 'Diseño de ejercicios (6h)', 6, 'variable'],
+    [P['Michelle'], 'Prep. de portales de ejercicios (6h)', 6, 'variable'],
+  ], 0, 0, '', {
+    descripcion: [
+      'Capacitación de 12 horas, dividida en 6 sesiones de 2 horas, impartida por Carlos',
+      'Material de apoyo incluido',
+      'Ejercicios prácticos personalizados por cliente',
+    ],
+    exclusiones: [
+      'Seguimiento post-taller',
+      'Medición de impacto a largo plazo',
+      'Personalización por rol/nivel dentro del equipo',
+    ],
+    addons: [
+      ['Cross-sell: Simuladores de Venta con IA', 'Para reforzar al equipo del cliente después de la capacitación', 0, 0],
+    ],
+  });
+
+  servicio('Capacitaciones de Liderazgo', 'Ventas', 18900, 2, 'capacitación', [
+    [P['Carlos'], 'Entrega (8h)', 8, 'variable'],
+    [P['Carlos'], 'Diseño del curso (6h)', 6, 'variable'],
+    [P['Michelle'], 'Prep. de portales de ejercicios (6h)', 6, 'variable'],
+  ], 0, 0, '', {
+    descripcion: [
+      'Capacitación de 8 horas, dividida en 4 sesiones de 2 horas, impartida por Carlos',
+      'Presentaciones estándar de contenido',
+      'Ejercicios personalizados por cliente',
+    ],
+    exclusiones: [
+      'Coaching individual 1:1',
+      'Seguimiento longitudinal',
+      'Evaluación 360°',
+    ],
+    addons: [],
+  });
+
+  servicio('EVA+ (Método)', 'Ventas', 30000, 6, 'cliente', [
+    [P['Carlos'], 'Capacitación (8h/mes)', 8, 'variable'],
+    [P['Yunuen'], 'Coaching a vendedores (24h/mes)', 24, 'variable'],
+  ], 0, 0, '', {
+    descripcion: [
+      'Método de evaluación y coaching de 4 meses de duración',
+      'Carlos dedica 8h/mes al cliente',
+      'Yunuen da seguimiento a hasta 6 vendedores por cliente, 1h/semana por vendedor',
+    ],
+    exclusiones: [
+      'Uso del Portal La Inteligencia EVA+ más allá de los 4 meses del método (requiere renta aparte)',
+    ],
+    addons: [
+      ['Renta de La Inteligencia EVA+ post-proyecto', 'Ver servicio "La Inteligencia EVA+ (Portal)"', 7500, 500],
+    ],
+  });
+
+  servicio('La Inteligencia EVA+ (Portal)', 'Ventas', 7500, 12, 'cliente', [
+  ], 0, 500, 'Bono mensual de mantenimiento por cliente activo', {
+    descripcion: [
+      'Acceso al portal de inteligencia EVA+ una vez concluido un proyecto de EVA+ o SBOS',
+      'Herramienta de continuidad post-proyecto',
+    ],
+    exclusiones: [
+      'Consultoría o acompañamiento activo (eso es EVA+/SBOS como proyecto)',
+      'Nuevas implementaciones o subsistemas',
+    ],
+    addons: [],
+  });
+
+  servicio('Playbook de Ventas', 'Ventas', 0, 0, 'cliente', [], 0, 0, 'No se vende aislado — incluido en EVA+', {
+    descripcion: [
+      'Documento con proceso comercial documentado, guiones/objeciones y criterios de calificación de prospectos',
+      'Puerta de entrada dentro de EVA+ — de ahí se puede escalar a Simuladores de venta con IA',
+    ],
+    exclusiones: [
+      'No se vende de forma aislada — no existe como parte de Capacitaciones de Venta ni de Liderazgo',
+    ],
+    addons: [],
+  });
+  servicio('Simuladores de Venta con IA', 'Ventas', 0, 0, 'cliente', [], 0, 0, 'Pendiente de costeo', {
+    descripcion: [
+      'Simulador con personas/perfiles de cliente definidos (ej. 4 personas tipo)',
+      'Escenarios de negociación',
+    ],
+    exclusiones: [
+      'Personas/escenarios adicionales fuera de los definidos',
+      'Integración con CRM del cliente',
+      'Actualización de escenarios post-entrega',
+    ],
+    addons: [],
+  });
+  servicio('Nuwek Online', 'Ventas', 0, 0, 'cliente', [], 0, 0, 'Pendiente de definir alcance y precio');
+
+  servicio('SBOS — Selling Blocks Operating System', 'Consultoría', 45000, 5, 'cliente', [
+    [P['Daniel'], 'Atención de cuenta (90% de su tiempo)', 0.90*HORAS_MES, 'fijo'],
+    [P['Jaime'], 'Atención de cuenta (90% de su tiempo)', 0.90*HORAS_MES, 'fijo'],
+    [P['Carlos'], 'Atención de cuenta (40% de su tiempo)', 0.40*HORAS_MES, 'fijo'],
+    [P['Michelle'], 'Atención de cuenta (40% de su tiempo)', 0.40*HORAS_MES, 'fijo'],
+  ], 0, 0, '', {
+    descripcion: [
+      'Implementación del sistema operativo comercial completo (estrategia, proceso, estructura, medición) según los subsistemas aplicables al cliente',
+      'Incluye acceso a La Inteligencia EVA+ como herramienta integrada durante el proyecto',
+      'Servicio insignia: integra Playbook, EVA+, Capacitaciones y Simuladores como componentes según lo que el diagnóstico determine',
+    ],
+    exclusiones: [
+      'Uso de La Inteligencia EVA+ más allá del proyecto (requiere renta aparte)',
+    ],
+    addons: [
+      ['Renta de La Inteligencia EVA+ post-proyecto', 'Ver servicio "La Inteligencia EVA+ (Portal)"', 7500, 500],
+      ['Módulos adicionales', 'No contemplados en el diagnóstico inicial — precio a definir por alcance', 0, 0],
+      ['Capacitaciones de venta/liderazgo como refuerzo', 'Se cotizan como esos servicios por separado', 0, 0],
+    ],
+  });
+
+  servicio('Asesorías', 'Consultoría', 0, 0, 'proyecto', [], 0, 0, 'Precio por proyecto — pendiente de estandarizar');
+  servicio('Diagnóstico', 'Consultoría', 0, 0, 'proyecto', [], 0, 0, 'Pendiente de definir alcance y precio');
+  servicio('Desarrollo de Portales (a medida)', 'Consultoría', 0, 0, 'proyecto', [], 0, 0, 'Precio por proyecto — pendiente de estandarizar');
+  servicio('Landing Pages', 'Marketing', 4500, 0, 'unidad', [], 0, 1500, 'Costo directo estimado (sin persona asignada aún)');
+  servicio('Levantamientos Video y Fotográficos', 'Marketing', 2500, 0, 'sesión', [], 0, 350, 'Costo directo estimado');
+  servicio('Levantamientos con Dron', 'Marketing', 4500, 0, 'sesión', [], 0, 700, 'Costo directo estimado');
+
+  // bonos
+  function bono(nombre, personaNombre, servicioId, monto, tipo, condicion){
+    state.bonos.push({id:newId(), nombre, personaId:P[personaNombre], servicioId, monto, tipo, condicion});
+  }
+  const servByName = n => state.servicios.find(s=>s.nombre===n).id;
+  bono('Bono instalación GHL', 'Michelle', servByName('Go High Level (GHL)'), 400, 'unico', '<24h de trabajo activo (baja a $250 si toma el 2do día)');
+  bono('Bono seguimiento portales — Venta', 'Michelle', servByName('Capacitaciones de Venta'), 1000, 'variable', 'Portales entregados en <48h');
+  bono('Bono seguimiento portales — Liderazgo', 'Michelle', servByName('Capacitaciones de Liderazgo'), 1000, 'variable', 'Portales entregados en <48h');
+  bono('Bono seguimiento coacheo', 'Yunuen', servByName('EVA+ (Método)'), 1000, 'variable', '≥90% de citas de coacheo al mes');
+
+  // por defecto, la proyección incluye los servicios con precio y tope mensual ya definidos
+  state.proyeccionSeleccion = state.servicios.filter(s => s.precio > 0 && s.maxClientes > 0).map(s => s.id);
+
+  // gastos generales de licencias — afectan a toda la operación, no a un servicio en particular
+  function gasto(nombre, proveedor, costo){
+    state.gastosGenerales.push({id:newId(), nombre, proveedor, costo});
+  }
+  gasto('Google Workspace', 'Google', 0);
+  gasto('Supabase', 'Supabase', 0);
+  gasto('GitHub', 'GitHub', 0);
+
+  // relaciones de cross-selling entre servicios
+  function relacion(nombreOrigen, nombreDestino, etiqueta){
+    const from = state.servicios.find(x=>x.nombre===nombreOrigen);
+    const to = state.servicios.find(x=>x.nombre===nombreDestino);
+    if(!from || !to) return;
+    state.relaciones.push({id:newId(), fromId:from.id, toId:to.id, etiqueta});
+  }
+  relacion('Playbook de Ventas', 'EVA+ (Método)', 'Puerta de entrada');
+  relacion('Playbook de Ventas', 'Simuladores de Venta con IA', 'Escalamiento');
+  relacion('Capacitaciones de Venta', 'Simuladores de Venta con IA', 'Cross-sell');
+  relacion('EVA+ (Método)', 'La Inteligencia EVA+ (Portal)', 'Renta post-proyecto');
+  relacion('SBOS — Selling Blocks Operating System', 'La Inteligencia EVA+ (Portal)', 'Incluido durante el proyecto, renta después');
+  relacion('Asesorías', 'Diagnóstico', 'Insumo del diagnóstico');
+  relacion('Diagnóstico', 'SBOS — Selling Blocks Operating System', 'Habilita la implementación');
+  relacion('Gestión de Redes Sociales / Campañas', 'Go High Level (GHL)', 'ADN comercial ya construido, sin costo extra');
+}
+
+/* ============================================================
+   MAPA DE ÁREAS (fijo, describe el flujo general entre categorías)
+   ============================================================ */
+const FLUJO_AREAS = [
+  {de:'Marketing', a:'Ventas', etiqueta:'ADN comercial'},
+  {de:'Ventas', a:'Consultoría', etiqueta:'Asesoría / Diagnóstico'},
+];
+
+/* ============================================================
+   PERSISTENCIA (window.storage del artifact, con respaldo en memoria)
+   ============================================================ */
+async function loadState(){
+  try{
+    const res = await window.storage.get('nuwek-matrix-state', false);
+    if(res && res.value){
+      state = JSON.parse(res.value);
+      if(!Array.isArray(state.proyeccionSeleccion)){
+        state.proyeccionSeleccion = state.servicios.filter(s => s.precio > 0 && s.maxClientes > 0).map(s => s.id);
+      }
+      if(!Array.isArray(state.gastosGenerales)){
+        state.gastosGenerales = [];
+      }
+      if(!Array.isArray(state.relaciones)){
+        state.relaciones = [];
+      }
+      state.servicios.forEach(s => {
+        if(typeof s.descripcion === 'string'){ s.descripcionItems = s.descripcion ? [{id:newId(), texto:s.descripcion}] : []; delete s.descripcion; }
+        if(typeof s.exclusiones === 'string'){ s.exclusionesItems = s.exclusiones ? [{id:newId(), texto:s.exclusiones}] : []; delete s.exclusiones; }
+        if(!Array.isArray(s.descripcionItems)) s.descripcionItems = [];
+        if(!Array.isArray(s.exclusionesItems)) s.exclusionesItems = [];
+        if(!Array.isArray(s.addons)) s.addons = [];
+        if(!s.subTab) s.subTab = 'alcance';
+      });
+      return true;
+    }
+  }catch(e){ /* no hay dato guardado aún o storage no disponible */ }
+  return false;
+}
+let saveTimer = null;
+function saveState(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try{
+      await window.storage.set('nuwek-matrix-state', JSON.stringify(state), false);
+      flagSaved();
+    }catch(e){ /* storage no disponible: los cambios viven solo en esta sesión */ }
+  }, 300);
+}
+function flagSaved(){
+  const f = document.getElementById('saveFlag');
+  f.classList.add('show');
+  setTimeout(()=>f.classList.remove('show'), 900);
+}
+
+/* ============================================================
+   CÁLCULOS
+   ============================================================ */
+function tarifaHora(persona){ return persona.sueldo / HORAS_MES; }
+
+function bonosDe(servicioId){ return state.bonos.filter(b => b.servicioId === servicioId); }
+function totalGastosGenerales(){ return state.gastosGenerales.reduce((sum,g) => sum + (g.costo||0), 0); }
+
+function calcServicio(s){
+  let costoFijo = s.costoFijoExterno || 0;
+  let costoVarUnidad = s.costoVarExterno || 0;
+  let costoInstalacionUnica = 0;
+
+  s.lineas.forEach(l => {
+    const p = state.personas.find(x => x.id === l.personaId);
+    if(!p) return;
+    const costoLinea = l.horas * tarifaHora(p);
+    if(l.tipo === 'fijo') costoFijo += costoLinea;
+    else if(l.tipo === 'unico') costoInstalacionUnica += costoLinea; // una sola vez por cliente nuevo, no recurrente
+    else costoVarUnidad += costoLinea; // 'variable' = recurrente por unidad vendida cada periodo
+  });
+
+  bonosDe(s.id).forEach(b => {
+    if(b.tipo === 'fijo') costoFijo += b.monto;
+    else if(b.tipo === 'unico') costoInstalacionUnica += b.monto;
+    else costoVarUnidad += b.monto;
+  });
+
+  const margenUnidad = s.precio - costoVarUnidad;
+  const puntoEquilibrio = (costoFijo > 0 && margenUnidad > 0) ? Math.ceil(costoFijo / margenUnidad) : (costoFijo > 0 ? null : 1);
+  const ingresoMax = s.precio * s.maxClientes;
+  const costoMax = costoFijo + costoVarUnidad * s.maxClientes; // recurrente — la instalación única NO se repite cada mes
+  const gpMax = ingresoMax - costoMax;
+  const margenPct = s.precio > 0 ? (margenUnidad / s.precio) * 100 : 0;
+
+  return { costoFijo, costoVarUnidad, costoInstalacionUnica, margenUnidad, margenPct, puntoEquilibrio, ingresoMax, costoMax, gpMax };
+}
+
+function fmt(n){
+  if(n === null || n === undefined || isNaN(n)) return '—';
+  return '$' + Math.round(n).toLocaleString('es-MX');
+}
+function fmtH(n){
+  return (Math.round(n*100)/100).toLocaleString('es-MX') + 'h';
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+let activeTab = 'personas';
+
+function setTab(t){
+  activeTab = t;
+  document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  render();
+}
+document.getElementById('tabs').addEventListener('click', e => {
+  if(e.target.matches('.tabbtn')) setTab(e.target.dataset.tab);
+});
+
+function render(){
+  const el = document.getElementById('app');
+  if(activeTab === 'personas') el.innerHTML = renderPersonas();
+  else if(activeTab === 'servicios') el.innerHTML = renderServicios();
+  else if(activeTab === 'bonos') el.innerHTML = renderBonos();
+  else if(activeTab === 'resumen') el.innerHTML = renderResumen();
+  else if(activeTab === 'proyeccion') el.innerHTML = renderProyeccion();
+  else if(activeTab === 'gastos') el.innerHTML = renderGastos();
+  else if(activeTab === 'crossselling') el.innerHTML = renderCrossselling();
+  else if(activeTab === 'equipo') el.innerHTML = renderEquipo();
+  bindEvents();
+}
+
+/* ---------- PERSONAS ---------- */
+function renderPersonas(){
+  const rows = state.personas.map(p => `
+    <tr data-id="${p.id}">
+      <td><input type="text" class="p-nombre" value="${esc(p.nombre)}"></td>
+      <td><input type="text" class="p-area" value="${esc(p.area)}"></td>
+      <td><input type="text" class="p-rol" value="${esc(p.rol)}"></td>
+      <td><input type="number" class="p-sueldo" value="${p.sueldo}" min="0" step="500"></td>
+      <td class="num mono">${fmt(tarifaHora(p))}/h</td>
+      <td><button class="btn-del" data-del-persona="${p.id}" title="Eliminar">✕</button></td>
+    </tr>`).join('');
+
+  return `
+    <h2>Personas</h2>
+    <p class="lead">Catálogo único de personas. Tarifa por hora = sueldo mensual ÷ ${HORAS_MES}h (jornada real: 8h × 20 días laborales).</p>
+    <div class="toolbar"><button class="btn btn-add" id="addPersona">+ Agregar persona</button></div>
+    <table>
+      <thead><tr><th>Nombre</th><th>Área</th><th>Rol</th><th>Sueldo mensual</th><th>Tarifa/hora</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6" style="text-align:center; color:#999; padding:20px;">Sin personas aún</td></tr>'}</tbody>
+    </table>`;
+}
+
+/* ---------- SERVICIOS ---------- */
+function badgeClass(cat){
+  if(cat==='Marketing') return 'badge-mkt';
+  if(cat==='Ventas') return 'badge-sales';
+  return 'badge-cons';
+}
+
+function renderServicios(){
+  const cards = state.servicios.map(s => {
+    const c = calcServicio(s);
+    const lineasRows = s.lineas.map(l => {
+      const opts = state.personas.map(p => `<option value="${p.id}" ${p.id===l.personaId?'selected':''}>${esc(p.nombre)}</option>`).join('');
+      return `
+      <tr data-lid="${l.id}">
+        <td><select class="l-persona">${opts}</select></td>
+        <td><input type="text" class="l-tarea" value="${esc(l.tarea)}"></td>
+        <td><input type="number" class="l-horas" value="${l.horas}" step="0.5" min="0"></td>
+        <td>
+          <select class="l-tipo">
+            <option value="fijo" ${l.tipo==='fijo'?'selected':''}>Fijo mensual</option>
+            <option value="variable" ${l.tipo==='variable'?'selected':''}>Por unidad</option>
+            <option value="unico" ${l.tipo==='unico'?'selected':''}>Único (por unidad)</option>
+          </select>
+        </td>
+        <td><button class="btn-del" data-del-linea="${s.id}:${l.id}">✕</button></td>
+      </tr>`;
+    }).join('');
+
+    const bonosLigados = bonosDe(s.id);
+    const bonosHtml = bonosLigados.length ? `
+      <div class="subhead">Bonos ligados a este servicio</div>
+      <table style="margin-bottom:6px;"><thead><tr><th>Bono</th><th>Persona</th><th>Monto</th><th>Tipo</th></tr></thead><tbody>
+      ${bonosLigados.map(b => {
+        const p = state.personas.find(x=>x.id===b.personaId);
+        return `<tr><td>${esc(b.nombre)}</td><td>${p?esc(p.nombre):'—'}</td><td class="num mono">${fmt(b.monto)}</td><td>${b.tipo==='fijo'?'Fijo mensual':'Por unidad'}</td></tr>`;
+      }).join('')}
+      </tbody></table>` : '';
+
+    return `
+    <div class="card ${s.open?'open':''}" data-sid="${s.id}">
+      <div class="card-head" data-toggle="${s.id}">
+        <span class="chev">▶</span>
+        <input type="text" class="s-nombre" value="${esc(s.nombre)}" onclick="event.stopPropagation()">
+        <select class="s-categoria" onclick="event.stopPropagation()">
+          <option value="Marketing" ${s.categoria==='Marketing'?'selected':''}>Marketing</option>
+          <option value="Ventas" ${s.categoria==='Ventas'?'selected':''}>Ventas</option>
+          <option value="Consultoría" ${s.categoria==='Consultoría'?'selected':''}>Consultoría</option>
+        </select>
+        <span class="badge ${badgeClass(s.categoria)}">${esc(s.categoria)}</span>
+        <span class="mono" style="font-size:12px; color:#666;">GP máx: <b style="color:${c.gpMax>=0?'#1E6F5C':'#A8402E'}">${fmt(c.gpMax)}</b></span>
+        <button class="btn-del" data-del-servicio="${s.id}" onclick="event.stopPropagation()">✕</button>
+      </div>
+      <div class="card-body">
+        <div class="fixedcost-row">
+          <label>Precio al cliente ($/${esc(s.unidad)})</label>
+          <input type="number" class="s-precio" value="${s.precio}" min="0" step="100">
+          <label style="margin-left:16px;">Máximo de ${esc(s.unidad)}s/mes</label>
+          <input type="number" class="s-max" value="${s.maxClientes}" min="0" step="1">
+        </div>
+
+        <div class="subtabs">
+          <button class="subtabbtn ${s.subTab==='alcance'?'active':''}" data-subtab="${s.id}:alcance">Alcance (horas y costos)</button>
+          <button class="subtabbtn ${s.subTab==='descripcion'?'active':''}" data-subtab="${s.id}:descripcion">Descripción y exclusiones (${s.descripcionItems.length}/${s.exclusionesItems.length})</button>
+          <button class="subtabbtn ${s.subTab==='addons'?'active':''}" data-subtab="${s.id}:addons">Add-ons (${s.addons.length})</button>
+        </div>
+
+        ${s.subTab === 'alcance' ? `
+        <div class="subhead">Alcance — líneas de trabajo por persona</div>
+        <table><thead><tr><th>Persona</th><th>Tarea</th><th>Horas</th><th>Tipo</th><th></th></tr></thead>
+        <tbody>${lineasRows || '<tr><td colspan="5" style="text-align:center; color:#999;">Sin líneas — servicio sin costo de mano de obra asignado</td></tr>'}</tbody></table>
+        <div class="toolbar" style="margin-top:8px;"><button class="btn btn-add" data-add-linea="${s.id}" style="font-size:11px; padding:6px 12px;">+ Agregar línea</button></div>
+
+        <div class="fixedcost-row" style="margin-top:14px;">
+          <label>Costo fijo externo ($/mes, sin persona — ej. licencias)</label>
+          <input type="number" class="s-fijoext" value="${s.costoFijoExterno}" min="0" step="50">
+        </div>
+        <div class="fixedcost-row">
+          <label>Costo variable externo ($/${esc(s.unidad)}, sin persona)</label>
+          <input type="number" class="s-varext" value="${s.costoVarExterno}" min="0" step="50">
+        </div>
+        <div class="fixedcost-row">
+          <label>Nota</label>
+          <input type="text" class="s-nota" value="${esc(s.notaExterno)}" style="flex:1;">
+        </div>
+
+        ${bonosHtml}
+
+        <div class="stat-row">
+          <div class="stat"><div class="l">Costo fijo/mes</div><div class="v cost" data-stat="fijo">${fmt(c.costoFijo)}</div></div>
+          <div class="stat"><div class="l">Costo por ${esc(s.unidad)}</div><div class="v cost" data-stat="var">${fmt(c.costoVarUnidad)}</div></div>
+          ${c.costoInstalacionUnica>0 ? `<div class="stat"><div class="l">Instalación única (por cliente nuevo)</div><div class="v cost" data-stat="inst">${fmt(c.costoInstalacionUnica)}</div></div>` : ''}
+          <div class="stat"><div class="l">Margen por ${esc(s.unidad)}</div><div class="v rev" data-stat="margen">${fmt(c.margenUnidad)} (${c.margenPct.toFixed(0)}%)</div></div>
+          <div class="stat"><div class="l">Punto de equilibrio</div><div class="v" data-stat="pe">${c.puntoEquilibrio===null?'No cubre costo fijo':(c.puntoEquilibrio+' '+esc(s.unidad)+(c.puntoEquilibrio===1?'':'s'))}</div></div>
+          <div class="stat"><div class="l">GP a capacidad máxima</div><div class="v rev" data-stat="gp">${fmt(c.gpMax)}</div></div>
+        </div>
+        ${c.costoInstalacionUnica>0 ? '<p class="note">La instalación única NO se repite cada mes por cliente activo — solo aplica una vez, cuando ese cliente entra nuevo. Por eso no está incluida en el GP recurrente de arriba.</p>' : ''}
+        ` : ''}
+
+        ${s.subTab === 'descripcion' ? renderDescripcionTab(s) : ''}
+
+        ${s.subTab === 'addons' ? renderAddonsTab(s) : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+    <h2>Servicios</h2>
+    <p class="lead">Cada servicio suma sus líneas de alcance (persona × horas), sus bonos ligados y sus costos externos para calcular el Gross Profit automáticamente. Clic en el nombre del servicio para expandir.</p>
+    <div class="toolbar"><button class="btn btn-add" id="addServicio">+ Agregar servicio</button></div>
+    ${cards}`;
+}
+
+function renderDescripcionTab(s){
+  const descRows = s.descripcionItems.map(d => `
+    <tr data-did="${d.id}">
+      <td><input type="text" class="d-texto" value="${esc(d.texto)}"></td>
+      <td><button class="btn-del" data-del-desc="${s.id}:${d.id}">✕</button></td>
+    </tr>`).join('');
+  const exclRows = s.exclusionesItems.map(x => `
+    <tr data-xid="${x.id}">
+      <td><input type="text" class="x-texto" value="${esc(x.texto)}"></td>
+      <td><button class="btn-del" data-del-excl="${s.id}:${x.id}">✕</button></td>
+    </tr>`).join('');
+
+  return `
+    <div class="subhead">Qué incluye el alcance (para cotizaciones y contratos)</div>
+    <table><tbody>${descRows || '<tr><td style="text-align:center; color:#999;">Sin puntos aún</td><td></td></tr>'}</tbody></table>
+    <div class="toolbar" style="margin-top:8px;"><button class="btn btn-add" data-add-desc="${s.id}" style="font-size:11px; padding:6px 12px;">+ Agregar punto</button></div>
+
+    <div class="subhead" style="margin-top:20px;">Qué NO incluye (exclusiones)</div>
+    <table><tbody>${exclRows || '<tr><td style="text-align:center; color:#999;">Sin puntos aún</td><td></td></tr>'}</tbody></table>
+    <div class="toolbar" style="margin-top:8px;"><button class="btn btn-add" data-add-excl="${s.id}" style="font-size:11px; padding:6px 12px;">+ Agregar punto</button></div>`;
+}
+
+function renderAddonsTab(s){
+  const rows = s.addons.map(a => {
+    const margen = (a.precio||0) - (a.costo||0);
+    return `<tr data-aid="${a.id}">
+      <td><input type="text" class="a-nombre" value="${esc(a.nombre)}"></td>
+      <td><input type="text" class="a-descripcion" value="${esc(a.descripcion)}"></td>
+      <td><input type="number" class="a-precio" value="${a.precio}" min="0" step="50"></td>
+      <td><input type="number" class="a-costo" value="${a.costo}" min="0" step="50"></td>
+      <td class="num mono" style="color:${margen>=0?'#1E6F5C':'#A8402E'};">${fmt(margen)}</td>
+      <td><button class="btn-del" data-del-addon="${s.id}:${a.id}">✕</button></td>
+    </tr>`;
+  }).join('');
+  return `
+    <div class="subhead">Add-ons — se cobran aparte del alcance base</div>
+    <table><thead><tr><th>Add-on</th><th>Descripción</th><th>Precio al cliente</th><th>Costo interno</th><th>Margen</th><th></th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="6" style="text-align:center; color:#999;">Sin add-ons para este servicio</td></tr>'}</tbody></table>
+    <div class="toolbar" style="margin-top:8px;"><button class="btn btn-add" data-add-addon="${s.id}" style="font-size:11px; padding:6px 12px;">+ Agregar add-on</button></div>
+    <p class="note">Los add-ons no se suman al GP base del servicio (arriba) — son upsells opcionales que se cotizan aparte, por eso su margen se muestra solo aquí.</p>`;
+}
+
+/* ---------- BONOS ---------- */
+function renderBonos(){
+  const rows = state.bonos.map(b => {
+    const pOpts = state.personas.map(p => `<option value="${p.id}" ${p.id===b.personaId?'selected':''}>${esc(p.nombre)}</option>`).join('');
+    const sOpts = state.servicios.map(s => `<option value="${s.id}" ${s.id===b.servicioId?'selected':''}>${esc(s.nombre)}</option>`).join('');
+    return `
+    <tr data-id="${b.id}">
+      <td><input type="text" class="b-nombre" value="${esc(b.nombre)}"></td>
+      <td><select class="b-persona">${pOpts}</select></td>
+      <td><select class="b-servicio">${sOpts}</select></td>
+      <td><input type="number" class="b-monto" value="${b.monto}" min="0" step="50"></td>
+      <td><select class="b-tipo">
+        <option value="fijo" ${b.tipo==='fijo'?'selected':''}>Fijo mensual</option>
+        <option value="variable" ${b.tipo==='variable'?'selected':''}>Por unidad (recurrente)</option>
+        <option value="unico" ${b.tipo==='unico'?'selected':''}>Único (por cliente nuevo)</option>
+      </select></td>
+      <td><input type="text" class="b-condicion" value="${esc(b.condicion)}"></td>
+      <td><button class="btn-del" data-del-bono="${b.id}">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <h2>Bonos</h2>
+    <p class="lead">Cada bono está ligado a una persona y a un servicio. Se suma automáticamente al costo de ese servicio (fijo mensual o por unidad, según el tipo).</p>
+    <div class="toolbar"><button class="btn btn-add" id="addBono">+ Agregar bono</button></div>
+    <table>
+      <thead><tr><th>Bono</th><th>Persona</th><th>Servicio ligado</th><th>Monto</th><th>Tipo</th><th>Condición</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="7" style="text-align:center; color:#999; padding:20px;">Sin bonos aún</td></tr>'}</tbody>
+    </table>`;
+}
+
+/* ---------- RESUMEN FINANCIERO ---------- */
+function renderResumen(){
+  let sumaGP = 0;
+  const rows = state.servicios.map(s => {
+    const c = calcServicio(s);
+    const pend = s.precio === 0;
+    const sinTope = !pend && s.maxClientes === 0;
+    if(!pend && !sinTope) sumaGP += c.gpMax;
+    let gpCell;
+    if(pend) gpCell = '<span style="color:#999;">Pendiente</span>';
+    else if(sinTope) gpCell = `<span class="mono" style="color:#1E6F5C;">${fmt(c.margenUnidad)}/${esc(s.unidad)}</span> <span style="color:#999; font-size:11px;">(sin tope mensual)</span>`;
+    else gpCell = `<span style="color:${c.gpMax>=0?'#1E6F5C':'#A8402E'}; font-weight:700;">${fmt(c.gpMax)}</span>`;
+    return `<tr>
+      <td>${esc(s.nombre)}</td>
+      <td><span class="badge ${badgeClass(s.categoria)}">${esc(s.categoria)}</span></td>
+      <td class="num mono">${pend?'—':fmt(s.precio)}</td>
+      <td class="num mono">${s.maxClientes || '—'}</td>
+      <td class="num mono">${pend?'—':fmt(c.costoVarUnidad)}</td>
+      <td class="num mono">${pend?'—':(c.margenPct.toFixed(0)+'%')}</td>
+      <td class="num mono">${gpCell}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <h2>Resumen financiero</h2>
+    <p class="lead">Los 16 servicios con su Gross Profit a capacidad máxima. Se recalcula solo al editar personas, alcances o bonos.</p>
+    <table>
+      <thead><tr><th>Servicio</th><th>Categoría</th><th>Precio</th><th>Máx.</th><th>Costo/unidad</th><th>Margen %</th><th>GP a capacidad máx.</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr style="background:var(--smoke); font-weight:700;"><td colspan="6" style="padding:10px;">Suma de GP a capacidad máxima (solo servicios con tope mensual definido)</td><td class="num mono" style="padding:10px; color:${sumaGP>=0?'#1E6F5C':'#A8402E'};">${fmt(sumaGP)}/mes</td></tr></tfoot>
+    </table>
+
+    <div class="stat-row" style="margin-top:16px;">
+      <div class="stat"><div class="l">GP bruto (suma de arriba)</div><div class="v rev">${fmt(sumaGP)}</div></div>
+      <div class="stat"><div class="l">Gastos generales (licencias)</div><div class="v cost">${fmt(totalGastosGenerales())}</div></div>
+      <div class="stat"><div class="l">GP neto</div><div class="v ${(sumaGP-totalGastosGenerales())>=0?'rev':'cost'}">${fmt(sumaGP - totalGastosGenerales())}</div></div>
+    </div>
+    <p class="note">GP neto = GP bruto − gastos generales de licencias (pestaña "Gastos generales"). Sigue sin incluir renta, nómina administrativa u otros gastos fuera de este sistema.</p>`;
+}
+
+/* ---------- PROYECCIÓN FINANCIERA ---------- */
+function renderProyeccion(){
+  const rows = state.servicios.map(s => {
+    const c = calcServicio(s);
+    const elegible = s.precio > 0 && s.maxClientes > 0;
+    const checked = state.proyeccionSeleccion.includes(s.id);
+    return `<tr style="opacity:${elegible?1:.45};">
+      <td><input type="checkbox" class="proy-check" data-sid="${s.id}" ${checked?'checked':''} ${elegible?'':'disabled'}></td>
+      <td>${esc(s.nombre)}</td>
+      <td><span class="badge ${badgeClass(s.categoria)}">${esc(s.categoria)}</span></td>
+      <td class="num mono">${elegible?fmt(c.ingresoMax):'—'}</td>
+      <td class="num mono">${elegible?fmt(c.costoMax):'—'}</td>
+      <td class="num mono" style="font-weight:700; color:${c.gpMax>=0?'#1E6F5C':'#A8402E'};">${elegible?fmt(c.gpMax):'—'}</td>
+    </tr>`;
+  }).join('');
+
+  let ingresoTotal = 0, costoTotal = 0;
+  state.servicios.forEach(s => {
+    if(!state.proyeccionSeleccion.includes(s.id)) return;
+    const c = calcServicio(s);
+    ingresoTotal += c.ingresoMax;
+    costoTotal += c.costoMax;
+  });
+  const gpTotal = ingresoTotal - costoTotal;
+
+  let acumIngreso = 0, acumCosto = 0, acumGP = 0;
+  const gastosMes = totalGastosGenerales();
+  const meses = [];
+  for(let m = 1; m <= 12; m++){
+    const ingresoMes = ingresoTotal * m / 12;
+    const costoMes = (costoTotal * m / 12) + gastosMes;
+    const gpMes = ingresoMes - costoMes;
+    acumIngreso += ingresoMes; acumCosto += costoMes; acumGP += gpMes;
+    meses.push({m, ingresoMes, costoMes, gpMes, acumIngreso, acumCosto, acumGP});
+  }
+
+  const mesesRows = meses.map(x => `<tr ${x.m===12?'style="background:var(--smoke); font-weight:700;"':''}>
+    <td class="mono">Mes ${x.m}${x.m===12?' (capacidad total)':''}</td>
+    <td class="num mono">${fmt(x.ingresoMes)}</td>
+    <td class="num mono">${fmt(x.costoMes)}</td>
+    <td class="num mono" style="color:#1E6F5C;">${fmt(x.gpMes)}</td>
+    <td class="num mono" style="font-weight:700;">${fmt(x.acumGP)}</td>
+  </tr>`).join('');
+
+  // Año 2: mes 13-24, plano al 80% de la capacidad total, acumulado reinicia en 0 (independiente del año 1)
+  const ingresoMesAño2 = ingresoTotal * 0.8;
+  const costoMesAño2 = (costoTotal * 0.8) + gastosMes;
+  const gpMesAño2 = ingresoMesAño2 - costoMesAño2;
+  let acumIngresoAño2 = 0, acumCostoAño2 = 0, acumGPAño2 = 0;
+  const mesesAño2 = [];
+  for(let m = 13; m <= 24; m++){
+    acumIngresoAño2 += ingresoMesAño2; acumCostoAño2 += costoMesAño2; acumGPAño2 += gpMesAño2;
+    mesesAño2.push({m, acumGPAño2});
+  }
+  const mesesAño2Rows = mesesAño2.map(x => `<tr ${x.m===24?'style="background:var(--smoke); font-weight:700;"':''}>
+    <td class="mono">Mes ${x.m}</td>
+    <td class="num mono">${fmt(ingresoMesAño2)}</td>
+    <td class="num mono">${fmt(costoMesAño2)}</td>
+    <td class="num mono" style="color:#1E6F5C;">${fmt(gpMesAño2)}</td>
+    <td class="num mono" style="font-weight:700;">${fmt(x.acumGPAño2)}</td>
+  </tr>`).join('');
+
+  return `
+    <h2>Proyección financiera</h2>
+    <p class="lead">Selecciona qué servicios cuentan. El GP mensual a capacidad total se reparte en una rampa de 12 meses: mes 1 = 1/12 de la capacidad, mes 2 = 2/12, … mes 12 = capacidad completa. El acumulado suma mes a mes.</p>
+
+    <table>
+      <thead><tr><th></th><th>Servicio</th><th>Categoría</th><th>Ingreso a capacidad</th><th>Costo a capacidad</th><th>GP a capacidad</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p class="note">Servicios sin precio o sin máximo de clientes definido quedan fuera automáticamente (aparecen atenuados).</p>
+
+    <div class="stat-row" style="margin-top:20px;">
+      <div class="stat"><div class="l">Ingreso a capacidad total</div><div class="v">${fmt(ingresoTotal)}</div></div>
+      <div class="stat"><div class="l">Costo a capacidad total</div><div class="v cost">${fmt(costoTotal)}</div></div>
+      <div class="stat"><div class="l">GP bruto a capacidad total</div><div class="v rev">${fmt(gpTotal)}</div></div>
+      <div class="stat"><div class="l">Gastos generales/mes</div><div class="v cost">${fmt(gastosMes)}</div></div>
+      <div class="stat"><div class="l">GP neto a capacidad total</div><div class="v ${(gpTotal-gastosMes)>=0?'rev':'cost'}">${fmt(gpTotal - gastosMes)}</div></div>
+    </div>
+    <p class="note">La rampa de abajo reparte el GP <b>bruto</b> a lo largo de 12 meses (mes 1 = 1/12, mes 2 = 2/12…) y le resta los ${fmt(gastosMes)}/mes de gastos generales completos en cada mes — por eso el "GP ese mes" y el acumulado de las tablas ya salen en neto, aunque el bloque de arriba muestre el bruto como referencia de capacidad.</p>
+
+    <div class="subhead" style="margin-top:20px;">Rampa a 12 meses — Año 1</div>
+    <p class="note" style="margin-top:0; margin-bottom:10px;">Columnas en <b>neto</b> (ya con gastos generales restados).</p>
+    <table>
+      <thead><tr><th>Periodo</th><th>Ingreso ese mes</th><th>Costo ese mes</th><th>GP ese mes</th><th>GP acumulado</th></tr></thead>
+      <tbody>${mesesRows}</tbody>
+    </table>
+    <p class="note">GP acumulado a fin de año 1: <b>${fmt(acumGP)}</b> — equivale a ${gpTotal>0 ? (acumGP/gpTotal).toFixed(1) : '0'}× el GP mensual a capacidad total.</p>
+
+    <div class="subhead" style="margin-top:28px;">Año 2 — mes 13 a 24 (manteniendo 80% de la capacidad)</div>
+    <p class="note" style="margin-top:0; margin-bottom:10px;">No es una rampa — se queda plano en 80% del GP <b>bruto</b> mensual a capacidad total cada mes, ya con los ${fmt(gastosMes)}/mes de gastos generales restados (neto). El acumulado se reinicia en este año (no carga el acumulado del año 1).</p>
+    <table>
+      <thead><tr><th>Periodo</th><th>Ingreso ese mes</th><th>Costo ese mes</th><th>GP ese mes</th><th>GP acumulado (año 2)</th></tr></thead>
+      <tbody>${mesesAño2Rows}</tbody>
+    </table>
+
+    <div class="subhead" style="margin-top:28px;">Combinado — Año 1 + Año 2</div>
+    <table>
+      <thead><tr><th></th><th class="num">GP acumulado</th></tr></thead>
+      <tbody>
+        <tr><td>Año 1 (mes 1 a 12)</td><td class="num mono">${fmt(acumGP)}</td></tr>
+        <tr><td>Año 2 (mes 13 a 24)</td><td class="num mono">${fmt(acumGPAño2)}</td></tr>
+        <tr style="background:var(--smoke); font-weight:700;"><td>Suma Año 1 + Año 2</td><td class="num mono" style="color:#1E6F5C;">${fmt(acumGP + acumGPAño2)}</td></tr>
+      </tbody>
+    </table>`;
+}
+
+/* ---------- GASTOS GENERALES ---------- */
+function renderGastos(){
+  const rows = state.gastosGenerales.map(g => `
+    <tr data-id="${g.id}">
+      <td><input type="text" class="g-nombre" value="${esc(g.nombre)}"></td>
+      <td><input type="text" class="g-proveedor" value="${esc(g.proveedor)}"></td>
+      <td><input type="number" class="g-costo" value="${g.costo}" min="0" step="10"></td>
+      <td><button class="btn-del" data-del-gasto="${g.id}">✕</button></td>
+    </tr>`).join('');
+  const total = totalGastosGenerales();
+
+  return `
+    <h2>Gastos generales</h2>
+    <p class="lead">Licencias y software que sostienen toda la operación — no están ligados a un servicio en particular (a diferencia de la licencia de GHL, que sí vive dentro de ese servicio). Este total se resta del GP en Resumen y en Proyección financiera.</p>
+    <div class="toolbar"><button class="btn btn-add" id="addGasto">+ Agregar gasto</button></div>
+    <table>
+      <thead><tr><th>Nombre</th><th>Proveedor</th><th>Costo mensual</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4" style="text-align:center; color:#999; padding:20px;">Sin gastos aún</td></tr>'}</tbody>
+      <tfoot><tr style="background:var(--smoke); font-weight:700;"><td colspan="2" style="padding:10px;">Total gastos generales</td><td class="num mono" style="padding:10px;">${fmt(total)}/mes</td><td></td></tr></tfoot>
+    </table>`;
+}
+
+/* ---------- CROSS-SELLING ---------- */
+function renderCrossselling(){
+  const areas = ['Marketing', 'Ventas', 'Consultoría'];
+  const areaColors = {Marketing:'var(--orange)', Ventas:'var(--revenue)', Consultoría:'var(--slate)'};
+
+  const columnas = areas.map((area, i) => {
+    const servs = state.servicios.filter(s => s.categoria === area);
+    const items = servs.map(s => {
+      const c = calcServicio(s);
+      const gp = (s.precio>0 && s.maxClientes>0) ? fmt(c.gpMax) : (s.precio>0?'sin tope':'pendiente');
+      return `<div style="background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:6px; font-size:12px;">
+        <b>${esc(s.nombre)}</b><br><span class="mono" style="color:#888; font-size:10.5px;">GP: ${gp}</span>
+      </div>`;
+    }).join('');
+    const arrow = i < areas.length-1 ? `
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 6px;">
+        <svg width="34" height="16" viewBox="0 0 34 16"><path d="M0 8h28M22 2l6 6-6 6" stroke="#223C36" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="mono" style="font-size:9.5px; color:#888; text-align:center; max-width:90px;">${esc(FLUJO_AREAS[i].etiqueta)}</span>
+      </div>` : '';
+    return `
+      <div style="flex:1; min-width:0;">
+        <div style="background:var(--smoke); border-top:4px solid ${areaColors[area]}; border-radius:10px 10px 0 0; padding:8px 12px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:13px;">${area} <span style="font-weight:400; color:#888;">(${servs.length})</span></div>
+        <div style="background:#fafaf8; border:1px solid var(--line); border-top:none; border-radius:0 0 10px 10px; padding:10px; min-height:80px;">${items || '<div style="color:#999; font-size:12px;">Sin servicios en esta área</div>'}</div>
+      </div>
+      ${arrow}`;
+  }).join('');
+
+  const relRows = state.relaciones.map(r => {
+    const fromOpts = state.servicios.map(s => `<option value="${s.id}" ${s.id===r.fromId?'selected':''}>${esc(s.nombre)}</option>`).join('');
+    const toOpts = state.servicios.map(s => `<option value="${s.id}" ${s.id===r.toId?'selected':''}>${esc(s.nombre)}</option>`).join('');
+    return `<tr data-id="${r.id}">
+      <td><select class="r-from">${fromOpts}</select></td>
+      <td style="text-align:center; color:#888;">→</td>
+      <td><select class="r-to">${toOpts}</select></td>
+      <td><input type="text" class="r-etiqueta" value="${esc(r.etiqueta)}"></td>
+      <td><button class="btn-del" data-del-relacion="${r.id}">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <h2>Mapa de cross-selling</h2>
+    <p class="lead">Vista por área (automática, según la categoría de cada servicio) y relaciones específicas entre servicios — de dónde sale un cliente y a qué otro servicio puede escalar.</p>
+
+    <div style="display:flex; align-items:stretch; margin-bottom:28px;">${columnas}</div>
+
+    <div class="subhead">Relaciones entre servicios</div>
+    <div class="toolbar"><button class="btn btn-add" id="addRelacion">+ Agregar relación</button></div>
+    <table>
+      <thead><tr><th>Servicio origen</th><th></th><th>Servicio destino</th><th>Etiqueta / motivo</th><th></th></tr></thead>
+      <tbody>${relRows || '<tr><td colspan="5" style="text-align:center; color:#999; padding:20px;">Sin relaciones aún</td></tr>'}</tbody>
+    </table>`;
+}
+
+/* ---------- EQUIPO (carga horaria) ---------- */
+function renderEquipo(){
+  const rows = state.personas.map(p => {
+    let horasFijas = 0, horasVarMax = 0, costoAsignado = 0;
+    state.servicios.forEach(s => {
+      s.lineas.forEach(l => {
+        if(l.personaId !== p.id) return;
+        const costoLinea = l.horas * tarifaHora(p);
+        if(l.tipo === 'fijo'){
+          horasFijas += l.horas;
+          costoAsignado += costoLinea;
+        } else {
+          horasVarMax += l.horas * (s.maxClientes || 0);
+          costoAsignado += costoLinea * (s.maxClientes || 0);
+        }
+      });
+    });
+    const totalHoras = horasFijas + horasVarMax;
+    const diff = HORAS_MES - totalHoras;
+    const pctSueldo = p.sueldo > 0 ? (costoAsignado / p.sueldo) * 100 : 0;
+    return `<tr>
+      <td><b>${esc(p.nombre)}</b><br><span style="font-size:11px; color:#888;">${esc(p.rol)}</span></td>
+      <td class="num mono">${fmtH(horasFijas)}</td>
+      <td class="num mono">${fmtH(horasVarMax)}</td>
+      <td class="num mono" style="font-weight:700;">${fmtH(totalHoras)}</td>
+      <td class="num mono">${HORAS_MES}h</td>
+      <td class="num mono" style="color:${diff>=0?'#1E6F5C':'#A8402E'}; font-weight:700;">${diff>=0?'+':''}${fmtH(diff)}</td>
+      <td class="num mono">${fmt(costoAsignado)} (${pctSueldo.toFixed(0)}%)</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <h2>Equipo — carga horaria</h2>
+    <p class="lead">Suma de horas de cada persona en todos los servicios donde participa, a capacidad máxima simultánea de cada uno. Base real: ${HORAS_MES}h/mes.</p>
+    <table>
+      <thead><tr><th>Persona</th><th>Horas fijas</th><th>Horas variables (a máx.)</th><th>Total horas/mes</th><th>Disponible</th><th>Margen</th><th>Costo asignado</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p class="note">"Horas variables (a máx.)" asume que todos los servicios en los que la persona participa llegan a su máximo de clientes/capacitaciones al mismo tiempo — es el escenario de mayor exigencia, no necesariamente el más probable.</p>`;
+}
+
+/* ============================================================
+   EVENTOS
+   ============================================================ */
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function bindEvents(){
+  const app = document.getElementById('app');
+
+  // ---- PERSONAS ----
+  app.querySelectorAll('.p-nombre, .p-area, .p-rol, .p-sueldo').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const id = Number(inp.closest('tr').dataset.id);
+      const p = state.personas.find(x=>x.id===id);
+      if(inp.classList.contains('p-nombre')) p.nombre = inp.value;
+      if(inp.classList.contains('p-area')) p.area = inp.value;
+      if(inp.classList.contains('p-rol')) p.rol = inp.value;
+      if(inp.classList.contains('p-sueldo')) p.sueldo = Number(inp.value)||0;
+      saveState();
+      if(inp.classList.contains('p-sueldo')) render(); // refresca tarifa/hora
+    });
+  });
+  app.querySelectorAll('[data-del-persona]').forEach(b => b.addEventListener('click', () => {
+    const id = Number(b.dataset.delPersona);
+    const usada = state.servicios.some(s => s.lineas.some(l=>l.personaId===id)) || state.bonos.some(bo=>bo.personaId===id);
+    if(usada){ alert('Esta persona está asignada en algún servicio o bono. Quítala de ahí primero.'); return; }
+    state.personas = state.personas.filter(p=>p.id!==id);
+    saveState(); render();
+  }));
+  const addP = document.getElementById('addPersona');
+  if(addP) addP.addEventListener('click', () => {
+    state.personas.push({id:newId(), nombre:'Nueva persona', area:'', rol:'', sueldo:0});
+    saveState(); render();
+  });
+
+  // ---- SERVICIOS ----
+  app.querySelectorAll('[data-toggle]').forEach(h => h.addEventListener('click', (e) => {
+    if(e.target.tagName==='INPUT' || e.target.tagName==='SELECT' || e.target.tagName==='BUTTON') return;
+    const id = Number(h.dataset.toggle);
+    const s = state.servicios.find(x=>x.id===id);
+    s.open = !s.open;
+    render();
+  }));
+  app.querySelectorAll('[data-subtab]').forEach(b => b.addEventListener('click', () => {
+    const [sid, tab] = b.dataset.subtab.split(':');
+    const s = state.servicios.find(x=>x.id===Number(sid));
+    s.subTab = tab;
+    render();
+  }));
+  app.querySelectorAll('.d-texto').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const sid = Number(inp.closest('[data-sid]').dataset.sid);
+      const did = Number(inp.closest('tr').dataset.did);
+      const s = state.servicios.find(x=>x.id===sid);
+      s.descripcionItems.find(d=>d.id===did).texto = inp.value;
+      saveState();
+    });
+  });
+  app.querySelectorAll('.x-texto').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const sid = Number(inp.closest('[data-sid]').dataset.sid);
+      const xid = Number(inp.closest('tr').dataset.xid);
+      const s = state.servicios.find(x=>x.id===sid);
+      s.exclusionesItems.find(x=>x.id===xid).texto = inp.value;
+      saveState();
+    });
+  });
+  app.querySelectorAll('[data-del-desc]').forEach(b=>b.addEventListener('click', ()=>{
+    const [sid,did] = b.dataset.delDesc.split(':').map(Number);
+    const s = state.servicios.find(x=>x.id===sid);
+    s.descripcionItems = s.descripcionItems.filter(d=>d.id!==did);
+    saveState(); render();
+  }));
+  app.querySelectorAll('[data-del-excl]').forEach(b=>b.addEventListener('click', ()=>{
+    const [sid,xid] = b.dataset.delExcl.split(':').map(Number);
+    const s = state.servicios.find(x=>x.id===sid);
+    s.exclusionesItems = s.exclusionesItems.filter(x=>x.id!==xid);
+    saveState(); render();
+  }));
+  app.querySelectorAll('[data-add-desc]').forEach(b=>b.addEventListener('click', ()=>{
+    const sid = Number(b.dataset.addDesc);
+    const s = state.servicios.find(x=>x.id===sid);
+    s.descripcionItems.push({id:newId(), texto:''});
+    saveState(); render();
+  }));
+  app.querySelectorAll('[data-add-excl]').forEach(b=>b.addEventListener('click', ()=>{
+    const sid = Number(b.dataset.addExcl);
+    const s = state.servicios.find(x=>x.id===sid);
+    s.exclusionesItems.push({id:newId(), texto:''});
+    saveState(); render();
+  }));
+  app.querySelectorAll('.a-nombre,.a-descripcion,.a-precio,.a-costo').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const sid = Number(inp.closest('[data-sid]').dataset.sid);
+      const aid = Number(inp.closest('tr').dataset.aid);
+      const s = state.servicios.find(x=>x.id===sid);
+      const a = s.addons.find(x=>x.id===aid);
+      if(inp.classList.contains('a-nombre')) a.nombre = inp.value;
+      if(inp.classList.contains('a-descripcion')) a.descripcion = inp.value;
+      if(inp.classList.contains('a-precio')) a.precio = Number(inp.value)||0;
+      if(inp.classList.contains('a-costo')) a.costo = Number(inp.value)||0;
+      saveState();
+      const row = inp.closest('tr');
+      const margenCell = row.children[4];
+      const margen = a.precio - a.costo;
+      margenCell.textContent = fmt(margen);
+      margenCell.style.color = margen>=0 ? '#1E6F5C' : '#A8402E';
+    });
+  });
+  app.querySelectorAll('[data-del-addon]').forEach(b=>b.addEventListener('click', ()=>{
+    const [sid,aid] = b.dataset.delAddon.split(':').map(Number);
+    const s = state.servicios.find(x=>x.id===sid);
+    s.addons = s.addons.filter(a=>a.id!==aid);
+    saveState(); render();
+  }));
+  app.querySelectorAll('[data-add-addon]').forEach(b=>b.addEventListener('click', ()=>{
+    const sid = Number(b.dataset.addAddon);
+    const s = state.servicios.find(x=>x.id===sid);
+    s.addons.push({id:newId(), nombre:'Nuevo add-on', descripcion:'', precio:0, costo:0});
+    saveState(); render();
+  }));
+  app.querySelectorAll('.s-nombre,.s-categoria,.s-precio,.s-max,.s-fijoext,.s-varext,.s-nota').forEach(inp=>{
+    inp.addEventListener('input', () => {
+      const id = Number(inp.closest('[data-sid]').dataset.sid);
+      const s = state.servicios.find(x=>x.id===id);
+      if(inp.classList.contains('s-nombre')) s.nombre = inp.value;
+      if(inp.classList.contains('s-categoria')) s.categoria = inp.value;
+      if(inp.classList.contains('s-precio')) s.precio = Number(inp.value)||0;
+      if(inp.classList.contains('s-max')) s.maxClientes = Number(inp.value)||0;
+      if(inp.classList.contains('s-fijoext')) s.costoFijoExterno = Number(inp.value)||0;
+      if(inp.classList.contains('s-varext')) s.costoVarExterno = Number(inp.value)||0;
+      if(inp.classList.contains('s-nota')) s.notaExterno = inp.value;
+      saveState();
+      renderStatsOnly(s);
+    });
+  });
+  app.querySelectorAll('.l-persona,.l-tarea,.l-horas,.l-tipo').forEach(inp=>{
+    inp.addEventListener('input', () => {
+      const sid = Number(inp.closest('[data-sid]').dataset.sid);
+      const lid = Number(inp.closest('tr').dataset.lid);
+      const s = state.servicios.find(x=>x.id===sid);
+      const l = s.lineas.find(x=>x.id===lid);
+      if(inp.classList.contains('l-persona')) l.personaId = Number(inp.value);
+      if(inp.classList.contains('l-tarea')) l.tarea = inp.value;
+      if(inp.classList.contains('l-horas')) l.horas = Number(inp.value)||0;
+      if(inp.classList.contains('l-tipo')) l.tipo = inp.value;
+      saveState();
+      renderStatsOnly(s);
+    });
+  });
+  app.querySelectorAll('[data-del-linea]').forEach(b=>b.addEventListener('click', ()=>{
+    const [sid,lid] = b.dataset.delLinea.split(':').map(Number);
+    const s = state.servicios.find(x=>x.id===sid);
+    s.lineas = s.lineas.filter(l=>l.id!==lid);
+    saveState(); render();
+  }));
+  app.querySelectorAll('[data-add-linea]').forEach(b=>b.addEventListener('click', ()=>{
+    const sid = Number(b.dataset.addLinea);
+    const s = state.servicios.find(x=>x.id===sid);
+    const firstPersona = state.personas[0];
+    s.lineas.push({id:newId(), personaId: firstPersona?firstPersona.id:null, tarea:'Nueva tarea', horas:1, tipo:'variable'});
+    saveState(); render();
+  }));
+  app.querySelectorAll('[data-del-servicio]').forEach(b=>b.addEventListener('click', ()=>{
+    const id = Number(b.dataset.delServicio);
+    if(!confirm('¿Eliminar este servicio? También se borrarán sus bonos ligados.')) return;
+    state.servicios = state.servicios.filter(s=>s.id!==id);
+    state.bonos = state.bonos.filter(bo=>bo.servicioId!==id);
+    saveState(); render();
+  }));
+  const addS = document.getElementById('addServicio');
+  if(addS) addS.addEventListener('click', ()=>{
+    state.servicios.push({id:newId(), nombre:'Nuevo servicio', categoria:'Marketing', precio:0, maxClientes:0, unidad:'cliente', costoFijoExterno:0, costoVarExterno:0, notaExterno:'', lineas:[], open:true});
+    saveState(); render();
+  });
+
+  // ---- GASTOS GENERALES ----
+  app.querySelectorAll('.g-nombre,.g-proveedor,.g-costo').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const id = Number(inp.closest('tr').dataset.id);
+      const g = state.gastosGenerales.find(x=>x.id===id);
+      if(inp.classList.contains('g-nombre')) g.nombre = inp.value;
+      if(inp.classList.contains('g-proveedor')) g.proveedor = inp.value;
+      if(inp.classList.contains('g-costo')) g.costo = Number(inp.value)||0;
+      saveState();
+      const totalCell = app.querySelector('tfoot .num');
+      if(totalCell) totalCell.textContent = fmt(totalGastosGenerales()) + '/mes';
+    });
+  });
+  app.querySelectorAll('[data-del-gasto]').forEach(b=>b.addEventListener('click', ()=>{
+    const id = Number(b.dataset.delGasto);
+    state.gastosGenerales = state.gastosGenerales.filter(g=>g.id!==id);
+    saveState(); render();
+  }));
+  const addG = document.getElementById('addGasto');
+  if(addG) addG.addEventListener('click', ()=>{
+    state.gastosGenerales.push({id:newId(), nombre:'Nuevo gasto', proveedor:'', costo:0});
+    saveState(); render();
+  });
+
+  // ---- PROYECCIÓN ----
+  app.querySelectorAll('.proy-check').forEach(chk => chk.addEventListener('change', () => {
+    const sid = Number(chk.dataset.sid);
+    if(chk.checked){
+      if(!state.proyeccionSeleccion.includes(sid)) state.proyeccionSeleccion.push(sid);
+    } else {
+      state.proyeccionSeleccion = state.proyeccionSeleccion.filter(id => id !== sid);
+    }
+    saveState(); render();
+  }));
+
+  // ---- CROSS-SELLING ----
+  app.querySelectorAll('.r-from,.r-to,.r-etiqueta').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const id = Number(inp.closest('tr').dataset.id);
+      const r = state.relaciones.find(x=>x.id===id);
+      if(inp.classList.contains('r-from')) r.fromId = Number(inp.value);
+      if(inp.classList.contains('r-to')) r.toId = Number(inp.value);
+      if(inp.classList.contains('r-etiqueta')) r.etiqueta = inp.value;
+      saveState();
+    });
+  });
+  app.querySelectorAll('[data-del-relacion]').forEach(b=>b.addEventListener('click', ()=>{
+    const id = Number(b.dataset.delRelacion);
+    state.relaciones = state.relaciones.filter(r=>r.id!==id);
+    saveState(); render();
+  }));
+  const addR = document.getElementById('addRelacion');
+  if(addR) addR.addEventListener('click', ()=>{
+    const s0 = state.servicios[0], s1 = state.servicios[1] || state.servicios[0];
+    state.relaciones.push({id:newId(), fromId:s0?s0.id:null, toId:s1?s1.id:null, etiqueta:''});
+    saveState(); render();
+  });
+
+  // ---- BONOS ----
+  app.querySelectorAll('.b-nombre,.b-persona,.b-servicio,.b-monto,.b-tipo,.b-condicion').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const id = Number(inp.closest('tr').dataset.id);
+      const b = state.bonos.find(x=>x.id===id);
+      if(inp.classList.contains('b-nombre')) b.nombre = inp.value;
+      if(inp.classList.contains('b-persona')) b.personaId = Number(inp.value);
+      if(inp.classList.contains('b-servicio')) b.servicioId = Number(inp.value);
+      if(inp.classList.contains('b-monto')) b.monto = Number(inp.value)||0;
+      if(inp.classList.contains('b-tipo')) b.tipo = inp.value;
+      if(inp.classList.contains('b-condicion')) b.condicion = inp.value;
+      saveState();
+    });
+  });
+  app.querySelectorAll('[data-del-bono]').forEach(b=>b.addEventListener('click', ()=>{
+    const id = Number(b.dataset.delBono);
+    state.bonos = state.bonos.filter(x=>x.id!==id);
+    saveState(); render();
+  }));
+  const addB = document.getElementById('addBono');
+  if(addB) addB.addEventListener('click', ()=>{
+    const firstPersona = state.personas[0], firstServicio = state.servicios[0];
+    state.bonos.push({id:newId(), nombre:'Nuevo bono', personaId:firstPersona?firstPersona.id:null, servicioId:firstServicio?firstServicio.id:null, monto:0, tipo:'variable', condicion:''});
+    saveState(); render();
+  });
+}
+
+// refresco ligero de los números de un servicio sin perder foco del input activo
+function renderStatsOnly(s){
+  const card = document.querySelector(`[data-sid="${s.id}"]`);
+  if(!card) return;
+  const c = calcServicio(s);
+  const set = (sel, txt) => { const el = card.querySelector(sel); if(el) el.textContent = txt; };
+  set('[data-stat="fijo"]', fmt(c.costoFijo));
+  set('[data-stat="var"]', fmt(c.costoVarUnidad));
+  set('[data-stat="margen"]', fmt(c.margenUnidad) + ' (' + c.margenPct.toFixed(0) + '%)');
+  set('[data-stat="pe"]', c.puntoEquilibrio===null ? 'No cubre costo fijo' : (c.puntoEquilibrio + ' ' + s.unidad + (c.puntoEquilibrio===1?'':'s')));
+  set('[data-stat="gp"]', fmt(c.gpMax));
+
+  const instEl = card.querySelector('[data-stat="inst"]');
+  const noteEl = card.querySelector('.note');
+  if(c.costoInstalacionUnica > 0){
+    if(instEl){ instEl.textContent = fmt(c.costoInstalacionUnica); }
+    else { render(); return; } // la tarjeta de instalación apareció por primera vez: repinta completo
+  } else if(instEl){
+    render(); return; // la tarjeta de instalación ya no aplica: repinta completo
+  }
+
+  const gpTag = card.querySelector('.card-head .mono b');
+  if(gpTag){ gpTag.textContent = fmt(c.gpMax); gpTag.style.color = c.gpMax>=0 ? '#1E6F5C' : '#A8402E'; }
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(async function init(){
+  const loaded = await loadState();
+  if(!loaded){ seedData(); saveState(); }
+  setTab('personas');
+})();
+</script>
+</body>
+</html>
