@@ -105,6 +105,7 @@
     <button class="tabbtn" data-tab="crossselling">Cross-selling</button>
     <button class="tabbtn" data-tab="equipo">Equipo</button>
   </div>
+  <button class="tabbtn" id="reloadBtn" style="border-color:var(--yellow); color:var(--yellow);" title="Trae los cambios que haya hecho la otra persona desde Google Sheets">↻ Recargar de Sheets</button>
 </header>
 
 <div class="wrap" id="app"></div>
@@ -390,49 +391,75 @@ const FLUJO_AREAS = [
 ];
 
 /* ============================================================
-   PERSISTENCIA (window.storage del artifact, con respaldo en memoria)
+   PERSISTENCIA — Google Sheets vía Apps Script (patrón anti-CORS)
    ============================================================ */
+// Reemplaza esto con la URL /exec que te da Google al desplegar el Apps Script (paso 2 de las instrucciones)
+const GS_URL = "https://script.google.com/macros/s/AKfycbwYcGLPjAP11pODiI9206bYVXD5k5l4c2G6jsNZkbROXwziGdKI9lng4ctUW6JvdpFY/exec";
+
+async function gs(action, data){
+  const res = await fetch(GS_URL, {
+    method: 'POST',
+    body: new URLSearchParams({ action, data: JSON.stringify(data || {}) })
+    // Sin objeto "headers": el body viaja como x-www-form-urlencoded, que cuenta
+    // como "petición simple" y NO dispara el preflight de CORS que Apps Script no sabe responder.
+  });
+  return res.json();
+}
+
+function normalizarEstado(){
+  if(!Array.isArray(state.proyeccionSeleccion)){
+    state.proyeccionSeleccion = state.servicios.filter(s => s.precio > 0 && s.maxClientes > 0).map(s => s.id);
+  }
+  if(!Array.isArray(state.gastosGenerales)) state.gastosGenerales = [];
+  if(!Array.isArray(state.relaciones)) state.relaciones = [];
+  state.servicios.forEach(s => {
+    if(typeof s.descripcion === 'string'){ s.descripcionItems = s.descripcion ? [{id:newId(), texto:s.descripcion}] : []; delete s.descripcion; }
+    if(typeof s.exclusiones === 'string'){ s.exclusionesItems = s.exclusiones ? [{id:newId(), texto:s.exclusiones}] : []; delete s.exclusiones; }
+    if(!Array.isArray(s.descripcionItems)) s.descripcionItems = [];
+    if(!Array.isArray(s.exclusionesItems)) s.exclusionesItems = [];
+    if(!Array.isArray(s.addons)) s.addons = [];
+    if(!s.subTab) s.subTab = 'alcance';
+  });
+}
+
 async function loadState(){
   try{
-    const res = await window.storage.get('nuwek-matrix-state', false);
-    if(res && res.value){
-      state = JSON.parse(res.value);
-      if(!Array.isArray(state.proyeccionSeleccion)){
-        state.proyeccionSeleccion = state.servicios.filter(s => s.precio > 0 && s.maxClientes > 0).map(s => s.id);
-      }
-      if(!Array.isArray(state.gastosGenerales)){
-        state.gastosGenerales = [];
-      }
-      if(!Array.isArray(state.relaciones)){
-        state.relaciones = [];
-      }
-      state.servicios.forEach(s => {
-        if(typeof s.descripcion === 'string'){ s.descripcionItems = s.descripcion ? [{id:newId(), texto:s.descripcion}] : []; delete s.descripcion; }
-        if(typeof s.exclusiones === 'string'){ s.exclusionesItems = s.exclusiones ? [{id:newId(), texto:s.exclusiones}] : []; delete s.exclusiones; }
-        if(!Array.isArray(s.descripcionItems)) s.descripcionItems = [];
-        if(!Array.isArray(s.exclusionesItems)) s.exclusionesItems = [];
-        if(!Array.isArray(s.addons)) s.addons = [];
-        if(!s.subTab) s.subTab = 'alcance';
-      });
+    const r = await gs('getState', {});
+    if(r && r.ok && r.json && r.json !== '{}'){
+      state = JSON.parse(r.json);
+      normalizarEstado();
       return true;
     }
-  }catch(e){ /* no hay dato guardado aún o storage no disponible */ }
+  }catch(e){ console.warn('No se pudo leer de Google Sheets — revisa GS_URL', e); }
   return false;
 }
+
 let saveTimer = null;
 function saveState(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     try{
-      await window.storage.set('nuwek-matrix-state', JSON.stringify(state), false);
-      flagSaved();
-    }catch(e){ /* storage no disponible: los cambios viven solo en esta sesión */ }
-  }, 300);
+      await gs('saveState', { json: JSON.stringify(state) });
+      flagSaved('Guardado en Sheets');
+    }catch(e){
+      console.warn('No se pudo guardar en Google Sheets', e);
+      flagSaved('Sin conexión — cambio solo local');
+    }
+  }, 500);
 }
-function flagSaved(){
+
+async function recargarDesdeSheets(){
+  flagSaved('Recargando…');
+  const ok = await loadState();
+  if(ok){ render(); flagSaved('Recargado de Sheets'); }
+  else { flagSaved('No se pudo recargar'); }
+}
+
+function flagSaved(texto){
   const f = document.getElementById('saveFlag');
+  f.textContent = texto || 'Guardado';
   f.classList.add('show');
-  setTimeout(()=>f.classList.remove('show'), 900);
+  setTimeout(()=>f.classList.remove('show'), 1400);
 }
 
 /* ============================================================
@@ -1267,6 +1294,8 @@ function renderStatsOnly(s){
    INIT
    ============================================================ */
 (async function init(){
+  document.getElementById('reloadBtn').addEventListener('click', recargarDesdeSheets);
+  flagSaved('Conectando con Sheets…');
   const loaded = await loadState();
   if(!loaded){ seedData(); saveState(); }
   setTab('personas');
