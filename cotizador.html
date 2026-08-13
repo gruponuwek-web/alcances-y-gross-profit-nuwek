@@ -300,6 +300,12 @@ function fmt(n){
   if(n === null || n === undefined || isNaN(n)) return '$0';
   return '$' + Math.round(n).toLocaleString('es-MX');
 }
+function fmtFecha(iso){
+  if(!iso) return '—';
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return iso;
+  return `${m[3]}-${m[2]}-${m[1].slice(2)}`;
+}
 function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 /* ============================================================
@@ -792,7 +798,7 @@ function renderGanttPreview(){
 
   el.innerHTML = `<table>
     <thead><tr><th>Sección</th><th>Actividad</th><th>Inicio</th><th>Fin</th></tr></thead>
-    <tbody>${items.map(g => `<tr><td>${escXml(g.seccion||'—')}</td><td>${escXml(g.actividad)}</td><td class="mono">${escXml(g.inicio)}</td><td class="mono">${escXml(g.fin)}</td></tr>`).join('')}</tbody>
+    <tbody>${items.map(g => `<tr><td>${escXml(g.seccion||'—')}</td><td>${escXml(g.actividad)}</td><td class="mono">${escXml(fmtFecha(g.inicio))}</td><td class="mono">${escXml(fmtFecha(g.fin))}</td></tr>`).join('')}</tbody>
   </table>`;
 }
 function escXml(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -819,7 +825,7 @@ function generarPDF(){
   const fecha = document.getElementById('cFecha').value || new Date().toISOString().slice(0,10);
   const vigencia = document.getElementById('cVigencia').value || '15';
   doc.text('Folio: ' + folio, pageW-15, 27, {align:'right'});
-  doc.text('Fecha: ' + fecha, pageW-15, 32, {align:'right'});
+  doc.text('Fecha: ' + fmtFecha(fecha), pageW-15, 32, {align:'right'});
   doc.text('Vigencia: ' + vigencia + ' días', pageW-15, 37, {align:'right'});
 
   doc.setDrawColor(220,220,220); doc.line(15, 42, pageW-15, 42);
@@ -977,7 +983,7 @@ function generarPDF(){
       doc.autoTable({
         startY: y,
         head: [['Concepto', 'Fecha', 'Monto']],
-        body: pagos.map(p => [p.concepto||'—', p.fecha||'—', fmt(p.monto)]),
+        body: pagos.map(p => [p.concepto||'—', fmtFecha(p.fecha), fmt(p.monto)]),
         theme: 'grid',
         headStyles: { fillColor: [34,60,54], textColor: [255,255,255], fontStyle:'bold' },
         styles: { fontSize: 9, cellPadding: 2.5 },
@@ -998,7 +1004,7 @@ function generarPDF(){
     doc.autoTable({
       startY: y,
       head: [['Sección', 'Actividad', 'Inicio', 'Fin']],
-      body: giPDF.map(g => [g.seccion||'—', g.actividad, g.inicio, g.fin]),
+      body: giPDF.map(g => [g.seccion||'—', g.actividad, fmtFecha(g.inicio), fmtFecha(g.fin)]),
       theme: 'grid',
       headStyles: { fillColor: [34,60,54], textColor: [255,255,255], fontStyle:'bold' },
       styles: { fontSize: 8.5, cellPadding: 2.5 },
@@ -1075,7 +1081,7 @@ function renderPresentacion(){
   let html = `
     <div class="pres-header">
       <img src="${LOGO_BLACK}" alt="Grupo Nuwek">
-      <div class="meta">Folio: ${esc(folio)}<br>Fecha: ${esc(fecha)}<br>Vigencia: ${esc(vigencia)} días</div>
+      <div class="meta">Folio: ${esc(folio)}<br>Fecha: ${esc(fmtFecha(fecha))}<br>Vigencia: ${esc(vigencia)} días</div>
     </div>
     <div class="pres-cliente">${esc(cliente)}</div>
     ${contacto ? `<div style="font-size:12px; color:var(--ink-soft);">At'n: ${esc(contacto)}</div>` : ''}
@@ -1123,7 +1129,7 @@ function renderPresentacion(){
     }
     if(pagos.length){
       html += `<table style="margin-top:8px;"><thead><tr><th>Concepto</th><th>Fecha</th><th class="num">Monto</th></tr></thead><tbody>
-        ${pagos.map(p=>`<tr><td>${esc(p.concepto)}</td><td>${esc(p.fecha)}</td><td class="num">${fmt(p.monto)}</td></tr>`).join('')}
+        ${pagos.map(p=>`<tr><td>${esc(p.concepto)}</td><td>${esc(fmtFecha(p.fecha))}</td><td class="num">${fmt(p.monto)}</td></tr>`).join('')}
       </tbody></table>`;
     }
   }
@@ -1132,7 +1138,7 @@ function renderPresentacion(){
   if(gi.length){
     html += `<div class="pres-h">Cronograma</div>
     <table><thead><tr><th>Sección</th><th>Actividad</th><th>Inicio</th><th>Fin</th></tr></thead>
-    <tbody>${gi.map(g=>`<tr><td>${esc(g.seccion||'—')}</td><td>${esc(g.actividad)}</td><td class="mono">${esc(g.inicio)}</td><td class="mono">${esc(g.fin)}</td></tr>`).join('')}</tbody></table>`;
+    <tbody>${gi.map(g=>`<tr><td>${esc(g.seccion||'—')}</td><td>${esc(g.actividad)}</td><td class="mono">${esc(fmtFecha(g.inicio))}</td><td class="mono">${esc(fmtFecha(g.fin))}</td></tr>`).join('')}</tbody></table>`;
   }
 
   const condActivas = condiciones.filter(c=>c.activo && c.texto);
