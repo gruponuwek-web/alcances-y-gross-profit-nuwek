@@ -146,6 +146,10 @@
     <button id="btnViewPresentacion">👁 Presentación</button>
     <button id="btnViewHistorial">📜 Historial</button>
   </div>
+  <div class="view-toggle">
+    <button id="btnActualizarServicios" style="border-color:var(--yellow); color:var(--yellow);">↻ Actualizar servicios</button>
+    <button id="btnNuevaCotizacion" style="border-color:var(--orange); color:var(--orange);">🆕 Nueva cotización</button>
+  </div>
   <a href="./index.html">← Motor de Servicios</a>
 </header>
 
@@ -1228,6 +1232,46 @@ function irAVista(nombre){
 document.getElementById('btnViewArmado').addEventListener('click', () => irAVista('armado'));
 document.getElementById('btnViewPresentacion').addEventListener('click', () => irAVista('presentacion'));
 document.getElementById('btnViewHistorial').addEventListener('click', () => irAVista('historial'));
+
+document.getElementById('btnActualizarServicios').addEventListener('click', async () => {
+  const btn = document.getElementById('btnActualizarServicios');
+  const original = btn.textContent;
+  btn.textContent = 'Actualizando…';
+  await cargarServicios();
+  renderResumen();
+  renderDescuentos();
+  btn.textContent = '✓ Actualizado';
+  setTimeout(() => { btn.textContent = original; }, 1500);
+});
+
+function nuevaCotizacion(){
+  if(!confirm('Esto vacía todo el formulario (cliente, servicios, pagos, cronograma, etc.) para empezar una cotización desde cero. ¿Continuar?')) return;
+
+  document.getElementById('cCliente').value = '';
+  document.getElementById('cContacto').value = '';
+  document.getElementById('cFolio').value = 'NW-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-4);
+  document.getElementById('cFecha').valueAsDate = new Date();
+  document.getElementById('cVigencia').value = '15';
+  document.getElementById('cFormaPagoExtra').value = '';
+  document.getElementById('cIntro').value = '';
+  document.getElementById('cNotas').value = 'Precios en pesos mexicanos, más IVA. Cotización válida por el periodo de vigencia indicado. Los servicios recurrentes se facturan mensualmente a partir de la fecha de inicio acordada.';
+
+  seleccion = {};
+  problemas = [];
+  pagos = [];
+  ganttItems = [];
+  bonos = [];
+  descuentos = [];
+  condiciones = CONDICIONES_DEFAULT.map(texto => ({ id: localId(), texto, activo: true }));
+  formasPago = FORMAS_PAGO_DEFAULT.map((texto,i) => ({ id: localId(), texto, activo: i===0 }));
+
+  renderServicios(); renderResumen(); renderProblemas(); renderPagos();
+  renderGanttEditor(); renderGanttPreview(); renderCondiciones(); renderFormaPago();
+  renderBonos(); renderDescuentos();
+  irAVista('armado');
+  document.getElementById('guardarMsg').textContent = '';
+}
+document.getElementById('btnNuevaCotizacion').addEventListener('click', nuevaCotizacion);
 
 /* ============================================================
    GUARDAR / HISTORIAL DE COTIZACIONES
