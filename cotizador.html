@@ -251,6 +251,7 @@
         <div class="fila"><span>IVA (16%)</span><span class="mono" id="rIva">$0</span></div>
         <div class="fila total"><span>Total</span><span class="mono" id="rTotal">$0</span></div>
       </div>
+      <div id="rDescCondNote" style="display:none; font-size:11.5px; color:var(--ink-soft); background:var(--smoke); padding:8px 10px; border-radius:6px; margin-top:6px;"></div>
       <button class="btn btn-pdf" id="btnPdf">↓ Descargar PDF</button>
       <button class="btn btn-pdf" id="btnGuardar" style="background:var(--revenue); margin-top:8px;">💾 Guardar cotización</button>
       <div id="guardarMsg" style="font-size:11.5px; margin-top:8px; text-align:center;"></div>
@@ -527,6 +528,18 @@ function renderResumen(){
     descRow.style.display = descuentoTotal > 0 ? 'flex' : 'none';
     document.getElementById('rDescuento').textContent = '−' + fmt(descuentoTotal);
   }
+  const condicionales = descuentosCondicionalesInfo(subtotal);
+  const noteEl = document.getElementById('rDescCondNote');
+  if(noteEl){
+    if(condicionales.length){
+      noteEl.style.display = 'block';
+      noteEl.innerHTML = '<b>Podría aplicar</b> (no está sumado en el total de arriba):<br>' + condicionales.map(c =>
+        `• ${esc(c.texto||'Descuento')}${c.servicio?` (${esc(c.servicio)})`:''} — ${fmt(c.monto)}${c.condicion?` · ${esc(c.condicion)}`:''}`
+      ).join('<br>');
+    } else {
+      noteEl.style.display = 'none';
+    }
+  }
   renderPagoCheck();
 }
 
@@ -592,7 +605,10 @@ function renderDescuentos(){
 
   el.innerHTML = descuentos.map(d => `
     <div class="row-editable descuento-row" data-id="${d.id}">
-      <input type="checkbox" class="d-activo" ${d.activo?'checked':''} title="Aplicar al total">
+      <select class="d-modo" title="Aplicado resta del total; Condicional solo se anota">
+        <option value="aplicado" ${d.modo==='aplicado'?'selected':''}>✓ Aplicado (resta del total)</option>
+        <option value="condicional" ${d.modo!=='aplicado'?'selected':''}>◌ Condicional (solo nota)</option>
+      </select>
       <input type="text" placeholder="Descripción (ej. Descuento por 3+ Diagnósticos)" class="d-texto" value="${esc(d.texto)}">
       <select class="d-tipo">
         <option value="%" ${d.tipo==='%'?'selected':''}>%</option>
@@ -603,13 +619,13 @@ function renderDescuentos(){
         <option value="">Toda la cotización</option>
         ${opcionesServicio.map(o => `<option value="${o.sid}" ${String(d.servicioId)===o.sid?'selected':''}>Solo: ${esc(o.nombre)}</option>`).join('')}
       </select>
-      <input type="text" placeholder="Restricción (ej. válido hasta 30/ago)" class="d-cond desc-cond" value="${esc(d.condicion)}">
+      <input type="text" placeholder="Condición (ej. válido si contratas 3 servicios)" class="d-cond desc-cond" value="${esc(d.condicion)}">
       <button class="btn-del" data-del-descuento="${d.id}">✕</button>
     </div>`).join('') || '<p class="empty-note">Sin descuentos definidos</p>';
-  el.querySelectorAll('.d-activo,.d-texto,.d-tipo,.d-valor,.d-cond,.d-servicio').forEach(inp => inp.addEventListener('input', () => {
+  el.querySelectorAll('.d-modo,.d-texto,.d-tipo,.d-valor,.d-cond,.d-servicio').forEach(inp => inp.addEventListener('input', () => {
     const id = Number(inp.closest('[data-id]').dataset.id);
     const d = descuentos.find(x=>x.id===id);
-    if(inp.classList.contains('d-activo')) d.activo = inp.checked;
+    if(inp.classList.contains('d-modo')) d.modo = inp.value;
     if(inp.classList.contains('d-texto')) d.texto = inp.value;
     if(inp.classList.contains('d-tipo')) d.tipo = inp.value;
     if(inp.classList.contains('d-valor')) d.valor = Number(inp.value)||0;
@@ -623,7 +639,7 @@ function renderDescuentos(){
   }));
 }
 document.getElementById('addDescuento').addEventListener('click', () => {
-  descuentos.push({ id: localId(), texto:'', tipo:'%', valor:0, condicion:'', activo:true, servicioId:null });
+  descuentos.push({ id: localId(), texto:'', tipo:'%', valor:0, condicion:'', modo:'condicional', servicioId:null });
   renderDescuentos();
 });
 
@@ -636,13 +652,21 @@ function subtotalPorServicio(){
   return map;
 }
 
-function calcularDescuentoTotal(subtotalBruto){
+function montoDescuento(d, subtotalBruto){
   const porServicio = subtotalPorServicio();
-  return descuentos.filter(d=>d.activo).reduce((sum,d) => {
-    const base = d.servicioId ? (porServicio[d.servicioId]||0) : subtotalBruto;
-    if(d.tipo === '%') return sum + base * (d.valor/100);
-    return sum + d.valor;
-  }, 0);
+  const base = d.servicioId ? (porServicio[d.servicioId]||0) : subtotalBruto;
+  return d.tipo === '%' ? base * (d.valor/100) : d.valor;
+}
+
+function calcularDescuentoTotal(subtotalBruto){
+  return descuentos.filter(d=>d.modo==='aplicado').reduce((sum,d) => sum + montoDescuento(d, subtotalBruto), 0);
+}
+
+function descuentosCondicionalesInfo(subtotalBruto){
+  return descuentos.filter(d=>d.modo!=='aplicado' && (d.texto||d.valor)).map(d => ({
+    texto: d.texto, condicion: d.condicion, monto: montoDescuento(d, subtotalBruto),
+    servicio: d.servicioId ? (servicios.find(x=>x.id===Number(d.servicioId))||{}).nombre : null,
+  }));
 }
 
 /* ============================================================
@@ -895,6 +919,25 @@ function generarPDF(){
 
   const pageH = doc.internal.pageSize.getHeight();
 
+  const condicionalesPDF = descuentosCondicionalesInfo(subtotal);
+  if(condicionalesPDF.length){
+    y += 10;
+    if(y > pageH - 25){ doc.addPage(); y = 20; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(80,80,80);
+    doc.text('Podría aplicar (no está sumado en el total de arriba):', 15, y);
+    y += 4.5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(100,100,100);
+    condicionalesPDF.forEach(c => {
+      const txt = `• ${c.texto||'Descuento'}${c.servicio?` (${c.servicio})`:''} - ${fmt(c.monto)}${c.condicion?` · ${c.condicion}`:''}`;
+      const lines = doc.splitTextToSize(limpiarTexto(txt), pageW-30);
+      lines.forEach(line => {
+        if(y > pageH - 15){ doc.addPage(); y = 20; }
+        doc.text(line, 15, y);
+        y += 4.2;
+      });
+    });
+  }
+
   const bonosConTexto = bonos.filter(b=>b.texto);
   if(bonosConTexto.length){
     y += 12;
@@ -1104,6 +1147,14 @@ function renderPresentacion(){
       <div class="fila total"><span>Total</span><span class="mono">${fmt(total)}</span></div>
     </div>`;
 
+  const condicionalesPres = descuentosCondicionalesInfo(subtotal);
+  if(condicionalesPres.length){
+    html += `<div style="font-size:11.5px; color:var(--ink-soft); background:var(--smoke); padding:8px 10px; border-radius:6px; margin-top:6px;">
+      <b>Podría aplicar</b> (no está sumado en el total de arriba):<br>
+      ${condicionalesPres.map(c => `• ${esc(c.texto||'Descuento')}${c.servicio?` (${esc(c.servicio)})`:''} — ${fmt(c.monto)}${c.condicion?` · ${esc(c.condicion)}`:''}`).join('<br>')}
+    </div>`;
+  }
+
   const bonosConTexto = bonos.filter(b=>b.texto);
   if(bonosConTexto.length){
     html += `<div class="pres-h">Bonos incluidos</div><ul style="margin:0; padding-left:18px; font-size:12.5px; color:var(--revenue);">${bonosConTexto.map(b=>`<li style="margin-bottom:3px;">${esc(b.texto)}${b.condicion?` <span style="color:var(--ink-soft); font-size:11px;">(${esc(b.condicion)})</span>`:''}</li>`).join('')}</ul>`;
@@ -1210,7 +1261,10 @@ function restaurarEstado(snap){
   condiciones = snap.condiciones || condiciones;
   formasPago = snap.formasPago || formasPago;
   bonos = snap.bonos || [];
-  descuentos = snap.descuentos || [];
+  descuentos = (snap.descuentos || []).map(d => ({
+    ...d,
+    modo: d.modo || (d.activo === false ? 'condicional' : 'aplicado'), // compatibilidad con cotizaciones guardadas antes de este cambio
+  }));
 
   renderServicios(); renderResumen(); renderProblemas(); renderPagos();
   renderGanttEditor(); renderGanttPreview(); renderCondiciones(); renderFormaPago();
