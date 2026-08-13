@@ -96,6 +96,19 @@
   .pago-row input[type=date]{flex:1; min-width:130px;}
   .pago-row input[type=number]{width:110px;}
   .problema-row input[type=text]{flex:1;}
+  .condicion-row{display:flex; align-items:flex-start; gap:8px; margin-bottom:7px; font-size:12.5px;}
+  .condicion-row input[type=checkbox]{margin-top:3px; width:15px; height:15px; flex-shrink:0;}
+  .condicion-row input[type=text]{flex:1; font-size:12px; border:1px solid var(--line); border-radius:6px; padding:6px 8px;}
+  .condicion-row.off input[type=text]{color:#aaa; text-decoration:line-through;}
+  .checkopt-row{display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:13px;}
+  .checkopt-row input[type=checkbox]{width:15px; height:15px;}
+  .bono-row input[type=text]{flex:2; min-width:140px;}
+  .bono-row input[type=text].bono-cond{flex:1.4; min-width:120px;}
+  .descuento-row input[type=text]{flex:2; min-width:120px;}
+  .descuento-row select{padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px;}
+  .descuento-row input[type=number]{width:90px;}
+  .descuento-row input[type=text].desc-cond{flex:1.4; min-width:120px;}
+  .descuento-row input[type=checkbox]{width:16px; height:16px;}
   .gantt-row input[type=text]{flex:1; min-width:110px;}
   .gantt-row input[type=date]{width:135px;}
   .pago-total-check{font-size:11.5px; margin-top:6px; padding:8px 10px; border-radius:6px; background:var(--smoke);}
@@ -161,25 +174,51 @@
     </div>
 
     <div class="panel">
+      <h2>Bonos y descuentos</h2>
+      <p class="lead">Bonos = regalos/incentivos para cerrar rápido (no afectan el total). Descuentos = sí restan del total.</p>
+
+      <div class="subhead">Bonos (incentivos, sin costo)</div>
+      <div id="bonosList"></div>
+      <div class="toolbar"><button class="btn btn-add" id="addBono" style="width:auto; font-size:11px; padding:6px 12px;">+ Agregar bono</button></div>
+
+      <div class="subhead" style="margin-top:18px;">Descuentos (restan del total)</div>
+      <div id="descuentosList"></div>
+      <div class="toolbar"><button class="btn btn-add" id="addDescuento" style="width:auto; font-size:11px; padding:6px 12px;">+ Agregar descuento</button></div>
+    </div>
+
+    <div class="panel">
       <h2>Forma de pago</h2>
-      <p class="lead">Cómo espera el cliente pagar — aparece en el PDF junto a la tabla de pagos.</p>
-      <div class="field"><input type="text" id="cFormaPago" placeholder="Ej. Transferencia bancaria, 50% anticipo / 50% contra entrega"></div>
+      <p class="lead">Marca los métodos aceptados — aparece en el PDF junto a la tabla de pagos.</p>
+      <div id="formaPagoList"></div>
+      <div class="field" style="margin-top:10px;"><input type="text" id="cFormaPagoExtra" placeholder="Detalle adicional (ej. 50% anticipo / 50% contra entrega)"></div>
     </div>
 
     <div class="panel">
       <h2>Tabla de pagos</h2>
-      <p class="lead">Desglosa el total en los pagos acordados con el cliente (anticipo, parcialidades, mensualidades...).</p>
+      <p class="lead">Desglosa el total en los pagos acordados con el cliente (anticipo, parcialidades, mensualidades...). Si pusiste fechas por servicio, puedes generar los pagos mensuales automáticamente.</p>
       <div id="pagosList"></div>
-      <div class="toolbar"><button class="btn btn-add" id="addPago" style="width:auto; font-size:11px; padding:6px 12px;">+ Agregar pago</button></div>
+      <div class="toolbar" style="justify-content:space-between;">
+        <button class="btn btn-add" id="genPagos" style="width:auto; font-size:11px; padding:6px 12px; background:var(--revenue);">⚡ Generar pagos por fechas de servicios</button>
+        <button class="btn btn-add" id="addPago" style="width:auto; font-size:11px; padding:6px 12px;">+ Agregar pago</button>
+      </div>
       <div id="pagoTotalCheck" class="pago-total-check"></div>
     </div>
 
     <div class="panel">
       <h2>Cronograma (Gantt)</h2>
-      <p class="lead">Sección, actividad, fecha de inicio y fecha de cierre — el diagrama se arma solo.</p>
+      <p class="lead">Sección, actividad, fecha de inicio y fecha de cierre — el diagrama se arma solo. Si pusiste fechas por servicio, puedes traerlas automáticamente.</p>
       <div id="ganttList"></div>
-      <div class="toolbar"><button class="btn btn-add" id="addGantt" style="width:auto; font-size:11px; padding:6px 12px;">+ Agregar actividad</button></div>
+      <div class="toolbar" style="justify-content:space-between;">
+        <button class="btn btn-add" id="genGantt" style="width:auto; font-size:11px; padding:6px 12px; background:var(--revenue);">⚡ Usar fechas de servicios</button>
+        <button class="btn btn-add" id="addGantt" style="width:auto; font-size:11px; padding:6px 12px;">+ Agregar actividad</button>
+      </div>
       <div class="gantt-svg-wrap" id="ganttPreview"><p class="empty-note">Agrega actividades para ver el diagrama.</p></div>
+    </div>
+
+    <div class="panel">
+      <h2>Condiciones estándar</h2>
+      <p class="lead">Siempre presentes por default en toda cotización — destilda las que no apliquen a este caso en particular.</p>
+      <div id="condicionesList"></div>
     </div>
 
     <div class="panel">
@@ -197,6 +236,7 @@
       </table>
       <div class="totales">
         <div class="fila"><span>Subtotal</span><span class="mono" id="rSubtotal">$0</span></div>
+        <div class="fila" id="rDescuentoRow" style="display:none; color:#A8402E;"><span>Descuentos</span><span class="mono" id="rDescuento">$0</span></div>
         <div class="fila"><span>IVA (16%)</span><span class="mono" id="rIva">$0</span></div>
         <div class="fila total"><span>Total</span><span class="mono" id="rTotal">$0</span></div>
       </div>
@@ -218,6 +258,12 @@ let seleccion = {}; // servicioId -> {cantidad, addons: Set(addonId)}
 let pagos = []; // {id, concepto, fecha, monto}
 let ganttItems = []; // {id, seccion, actividad, inicio, fin}
 let problemas = []; // {id, texto}
+let condiciones = []; // {id, texto, activo} — condiciones estándar, siempre presentes por default
+let bonos = []; // {id, texto, condicion}
+let descuentos = []; // {id, texto, tipo:'%'|'$', valor, condicion, activo}
+let formasPago = []; // {id, texto, activo} — checkboxes de métodos de pago aceptados
+
+const DATOS_BANCARIOS = { banco: 'Santander', cuenta: '014290655117766611', titular: 'Carlos Adrián Acosta Rivera' };
 let nextLocalId = 1;
 function localId(){ return nextLocalId++; }
 
@@ -234,6 +280,57 @@ function fmt(n){
   return '$' + Math.round(n).toLocaleString('es-MX');
 }
 function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ============================================================
+   CONDICIONES ESTÁNDAR (fijas, siempre presentes por default)
+   ============================================================ */
+const CONDICIONES_DEFAULT = [
+  'Los precios NO incluyen I.V.A.',
+  'El importe cobrado por la prestación del servicio son montos netos; dicha cantidad es después de la aplicación de impuestos trasladados y retenciones correspondientes en caso de facturar a persona moral.',
+  'La información financiera sensible y del modelo de negocio queda protegida por un contrato de confidencialidad.',
+  'La propuesta no incluye servicios de impresión de materiales publicitarios ni campañas digitales.',
+  'La propuesta no incluye viáticos a partir de 120km de Pachuca, Hidalgo.',
+  'La propuesta no incluye creación de perfiles de puestos ni reclutamiento de personal.',
+  'La cotización no incluye capacitación de productos ni servicios brindados por la empresa.',
+  'Los pagos se realizan por adelantado, dentro de los primeros 5 días del mes. Pagos fuera de ese plazo generan una penalización de $1,000 MXN.',
+  'La cotización tiene validez de 30 días naturales.',
+];
+condiciones = CONDICIONES_DEFAULT.map(texto => ({ id: localId(), texto, activo: true }));
+
+const FORMAS_PAGO_DEFAULT = ['Transferencia bancaria', 'Depósito en efectivo', 'Tarjeta de crédito/débito', 'Cheque', 'Pasarela digital (PayPal, Stripe, etc.)'];
+formasPago = FORMAS_PAGO_DEFAULT.map((texto,i) => ({ id: localId(), texto, activo: i===0 }));
+
+function renderFormaPago(){
+  const el = document.getElementById('formaPagoList');
+  el.innerHTML = formasPago.map(f => `
+    <div class="checkopt-row" data-id="${f.id}">
+      <input type="checkbox" class="fp-activo" ${f.activo?'checked':''}>
+      <span>${esc(f.texto)}</span>
+    </div>`).join('');
+  el.querySelectorAll('.fp-activo').forEach(chk => chk.addEventListener('change', () => {
+    const id = Number(chk.closest('[data-id]').dataset.id);
+    formasPago.find(f=>f.id===id).activo = chk.checked;
+  }));
+}
+
+function renderCondiciones(){
+  const el = document.getElementById('condicionesList');
+  el.innerHTML = condiciones.map(c => `
+    <div class="condicion-row ${c.activo?'':'off'}" data-id="${c.id}">
+      <input type="checkbox" class="c-activo" ${c.activo?'checked':''}>
+      <input type="text" class="c-texto" value="${esc(c.texto)}">
+    </div>`).join('');
+
+  el.querySelectorAll('.c-activo').forEach(chk => chk.addEventListener('change', () => {
+    const id = Number(chk.closest('[data-id]').dataset.id);
+    condiciones.find(c=>c.id===id).activo = chk.checked;
+    renderCondiciones();
+  }));
+  el.querySelectorAll('.c-texto').forEach(inp => inp.addEventListener('input', () => {
+    const id = Number(inp.closest('[data-id]').dataset.id);
+    condiciones.find(c=>c.id===id).texto = inp.value;
+  }));
+}
 
 async function cargarServicios(){
   try{
@@ -271,8 +368,14 @@ function renderServicios(){
       </div>
       <div class="servicio-detail">
         <div class="qty-row">
-          <label>Cantidad (${esc(s.unidad)}s)</label>
+          <label id="qtylabel-${s.id}">${checked && seleccion[s.id].fechaInicio && seleccion[s.id].fechaFin ? 'Meses (calculado por fechas)' : `Cantidad (${esc(s.unidad)}s)`}</label>
           <input type="number" min="1" step="1" value="${checked?seleccion[s.id].cantidad:1}" data-qty="${s.id}">
+        </div>
+        <div class="qty-row">
+          <label>Fecha inicio</label>
+          <input type="date" style="width:150px;" value="${checked?(seleccion[s.id].fechaInicio||''):''}" data-finicio="${s.id}">
+          <label>Fecha fin</label>
+          <input type="date" style="width:150px;" value="${checked?(seleccion[s.id].fechaFin||''):''}" data-ffin="${s.id}">
         </div>
         ${(s.descripcionItems&&s.descripcionItems.length) || (s.exclusionesItems&&s.exclusionesItems.length) ? `
         <div class="alcance-cols">
@@ -296,6 +399,18 @@ function renderServicios(){
     if(seleccion[sid]) seleccion[sid].cantidad = Math.max(1, Number(i.value)||1);
     renderResumen();
   }));
+  el.querySelectorAll('[data-finicio]').forEach(i => i.addEventListener('input', () => {
+    const sid = Number(i.dataset.finicio);
+    if(!seleccion[sid]) return;
+    seleccion[sid].fechaInicio = i.value;
+    sincronizarCantidadPorFechas(sid);
+  }));
+  el.querySelectorAll('[data-ffin]').forEach(i => i.addEventListener('input', () => {
+    const sid = Number(i.dataset.ffin);
+    if(!seleccion[sid]) return;
+    seleccion[sid].fechaFin = i.value;
+    sincronizarCantidadPorFechas(sid);
+  }));
   el.querySelectorAll('[data-addon]').forEach(c => c.addEventListener('change', () => {
     const [sid, aid] = c.dataset.addon.split(':').map(Number);
     if(!seleccion[sid]) return;
@@ -304,9 +419,27 @@ function renderServicios(){
   }));
 }
 
+function numMesesDuracion(inicio, fin){
+  const days = (new Date(fin) - new Date(inicio)) / 86400000;
+  return Math.max(1, Math.round(days / 30.44));
+}
+
+function sincronizarCantidadPorFechas(sid){
+  const sel = seleccion[sid];
+  if(!sel || !sel.fechaInicio || !sel.fechaFin) return;
+  if(new Date(sel.fechaFin) <= new Date(sel.fechaInicio)) return; // fecha fin todavía no tiene sentido, no recalcules aún
+  const meses = numMesesDuracion(sel.fechaInicio, sel.fechaFin);
+  sel.cantidad = meses;
+  const qtyInput = document.querySelector(`[data-qty="${sid}"]`);
+  if(qtyInput) qtyInput.value = meses;
+  const label = document.getElementById(`qtylabel-${sid}`);
+  if(label) label.textContent = 'Meses (calculado por fechas)';
+  renderResumen();
+}
+
 function toggleServicio(sid){
   if(seleccion[sid]) delete seleccion[sid];
-  else seleccion[sid] = { cantidad: 1, addons: new Set() };
+  else seleccion[sid] = { cantidad: 1, addons: new Set(), fechaInicio:'', fechaFin:'' };
   renderServicios();
   renderResumen();
 }
@@ -343,11 +476,18 @@ function renderResumen(){
       </tr>`).join('');
   }
   const subtotal = lineas.reduce((s,l)=>s+l.subtotal, 0);
-  const iva = subtotal * 0.16;
-  const total = subtotal + iva;
+  const descuentoTotal = calcularDescuentoTotal(subtotal);
+  const subtotalNeto = subtotal - descuentoTotal;
+  const iva = subtotalNeto * 0.16;
+  const total = subtotalNeto + iva;
   document.getElementById('rSubtotal').textContent = fmt(subtotal);
   document.getElementById('rIva').textContent = fmt(iva);
   document.getElementById('rTotal').textContent = fmt(total);
+  const descRow = document.getElementById('rDescuentoRow');
+  if(descRow){
+    descRow.style.display = descuentoTotal > 0 ? 'flex' : 'none';
+    document.getElementById('rDescuento').textContent = '−' + fmt(descuentoTotal);
+  }
   renderPagoCheck();
 }
 
@@ -377,6 +517,73 @@ document.getElementById('addProblema').addEventListener('click', () => {
   problemas.push({ id: localId(), texto:'' });
   renderProblemas();
 });
+
+/* ============================================================
+   BONOS Y DESCUENTOS
+   ============================================================ */
+function renderBonos(){
+  const el = document.getElementById('bonosList');
+  el.innerHTML = bonos.map(b => `
+    <div class="row-editable bono-row" data-id="${b.id}">
+      <input type="text" placeholder="Bono (ej. 1 mes de mantenimiento gratis)" class="b-texto" value="${esc(b.texto)}">
+      <input type="text" placeholder="Condición (ej. si firmas antes del 30/ago)" class="b-cond bono-cond" value="${esc(b.condicion)}">
+      <button class="btn-del" data-del-bono="${b.id}">✕</button>
+    </div>`).join('') || '<p class="empty-note">Sin bonos definidos</p>';
+  el.querySelectorAll('.b-texto,.b-cond').forEach(inp => inp.addEventListener('input', () => {
+    const id = Number(inp.closest('[data-id]').dataset.id);
+    const b = bonos.find(x=>x.id===id);
+    if(inp.classList.contains('b-texto')) b.texto = inp.value; else b.condicion = inp.value;
+  }));
+  el.querySelectorAll('[data-del-bono]').forEach(btn => btn.addEventListener('click', () => {
+    bonos = bonos.filter(b=>b.id!==Number(btn.dataset.delBono));
+    renderBonos();
+  }));
+}
+document.getElementById('addBono').addEventListener('click', () => {
+  bonos.push({ id: localId(), texto:'', condicion:'' });
+  renderBonos();
+});
+
+function renderDescuentos(){
+  const el = document.getElementById('descuentosList');
+  el.innerHTML = descuentos.map(d => `
+    <div class="row-editable descuento-row" data-id="${d.id}">
+      <input type="checkbox" class="d-activo" ${d.activo?'checked':''} title="Aplicar al total">
+      <input type="text" placeholder="Descripción (ej. Descuento por 3+ servicios)" class="d-texto" value="${esc(d.texto)}">
+      <select class="d-tipo">
+        <option value="%" ${d.tipo==='%'?'selected':''}>%</option>
+        <option value="$" ${d.tipo==='$'?'selected':''}>$</option>
+      </select>
+      <input type="number" class="d-valor" min="0" step="1" value="${d.valor}">
+      <input type="text" placeholder="Restricción (ej. válido hasta 30/ago)" class="d-cond desc-cond" value="${esc(d.condicion)}">
+      <button class="btn-del" data-del-descuento="${d.id}">✕</button>
+    </div>`).join('') || '<p class="empty-note">Sin descuentos definidos</p>';
+  el.querySelectorAll('.d-activo,.d-texto,.d-tipo,.d-valor,.d-cond').forEach(inp => inp.addEventListener('input', () => {
+    const id = Number(inp.closest('[data-id]').dataset.id);
+    const d = descuentos.find(x=>x.id===id);
+    if(inp.classList.contains('d-activo')) d.activo = inp.checked;
+    if(inp.classList.contains('d-texto')) d.texto = inp.value;
+    if(inp.classList.contains('d-tipo')) d.tipo = inp.value;
+    if(inp.classList.contains('d-valor')) d.valor = Number(inp.value)||0;
+    if(inp.classList.contains('d-cond')) d.condicion = inp.value;
+    renderResumen();
+  }));
+  el.querySelectorAll('[data-del-descuento]').forEach(btn => btn.addEventListener('click', () => {
+    descuentos = descuentos.filter(d=>d.id!==Number(btn.dataset.delDescuento));
+    renderDescuentos(); renderResumen();
+  }));
+}
+document.getElementById('addDescuento').addEventListener('click', () => {
+  descuentos.push({ id: localId(), texto:'', tipo:'%', valor:0, condicion:'', activo:true });
+  renderDescuentos();
+});
+
+function calcularDescuentoTotal(subtotalBruto){
+  return descuentos.filter(d=>d.activo).reduce((sum,d) => {
+    if(d.tipo === '%') return sum + subtotalBruto * (d.valor/100);
+    return sum + d.valor;
+  }, 0);
+}
 
 /* ============================================================
    TABLA DE PAGOS
@@ -411,7 +618,8 @@ function renderPagos(){
 function renderPagoCheck(){
   const lineas = lineasActuales();
   const subtotal = lineas.reduce((s,l)=>s+l.subtotal, 0);
-  const total = subtotal * 1.16;
+  const subtotalNeto = subtotal - calcularDescuentoTotal(subtotal);
+  const total = subtotalNeto * 1.16;
   const sumaPagos = pagos.reduce((s,p)=>s+(p.monto||0), 0);
   const box = document.getElementById('pagoTotalCheck');
   if(!pagos.length){ box.textContent = ''; box.className = 'pago-total-check'; return; }
@@ -427,6 +635,34 @@ function renderPagoCheck(){
 
 document.getElementById('addPago').addEventListener('click', () => {
   pagos.push({ id: localId(), concepto:'', fecha: new Date().toISOString().slice(0,10), monto:0 });
+  renderPagos();
+});
+
+document.getElementById('genPagos').addEventListener('click', () => {
+  const conFechas = Object.keys(seleccion)
+    .map(id => ({ sid: Number(id), sel: seleccion[id], s: servicios.find(x=>x.id===Number(id)) }))
+    .filter(x => x.s && x.sel.fechaInicio && x.sel.fechaFin);
+
+  if(!conFechas.length){
+    alert('Ponle fecha de inicio y fin a los servicios seleccionados (en la lista de Servicios) para poder generar los pagos.');
+    return;
+  }
+
+  conFechas.forEach(({ sel, s }) => {
+    const n = numMesesDuracion(sel.fechaInicio, sel.fechaFin);
+    const inicio = new Date(sel.fechaInicio);
+    const lineaSubtotal = s.precio * (sel.cantidad||1);
+    for(let i = 0; i < n; i++){
+      const fechaPago = new Date(inicio.getFullYear(), inicio.getMonth()+i, 5);
+      const monto = n === 1 ? lineaSubtotal : Math.round(s.precio);
+      pagos.push({
+        id: localId(),
+        concepto: n === 1 ? s.nombre : `${s.nombre} — mes ${i+1}/${n}`,
+        fecha: fechaPago.toISOString().slice(0,10),
+        monto,
+      });
+    }
+  });
   renderPagos();
 });
 
@@ -465,6 +701,24 @@ document.getElementById('addGantt').addEventListener('click', () => {
   const hoy = new Date().toISOString().slice(0,10);
   ganttItems.push({ id: localId(), seccion:'', actividad:'', inicio: hoy, fin: hoy });
   renderGanttEditor();
+});
+
+document.getElementById('genGantt').addEventListener('click', () => {
+  const conFechas = Object.keys(seleccion)
+    .map(id => ({ sel: seleccion[id], s: servicios.find(x=>x.id===Number(id)) }))
+    .filter(x => x.s && x.sel.fechaInicio && x.sel.fechaFin);
+
+  if(!conFechas.length){
+    alert('Ponle fecha de inicio y fin a los servicios seleccionados (en la lista de Servicios) para poder armar el cronograma.');
+    return;
+  }
+  if(ganttItems.length && !confirm('Esto reemplaza las actividades actuales del cronograma por las fechas de los servicios seleccionados. ¿Continuar?')) return;
+
+  ganttItems = conFechas.map(({ s, sel }) => ({
+    id: localId(), seccion: s.categoria, actividad: s.nombre, inicio: sel.fechaInicio, fin: sel.fechaFin,
+  }));
+  renderGanttEditor();
+  renderGanttPreview();
 });
 
 const GANTT_COLORS = ['#FBB03B', '#1E6F5C', '#223C36', '#C97A2B', '#4A6B62', '#F3DA5D'];
@@ -587,12 +841,20 @@ function generarPDF(){
 
   let y = doc.lastAutoTable.finalY + 8;
   const subtotal = lineas.reduce((s,l)=>s+l.subtotal, 0);
-  const iva = subtotal * 0.16;
-  const total = subtotal + iva;
+  const descuentoTotalPDF = calcularDescuentoTotal(subtotal);
+  const subtotalNeto = subtotal - descuentoTotalPDF;
+  const iva = subtotalNeto * 0.16;
+  const total = subtotalNeto + iva;
 
   doc.setFontSize(10); doc.setTextColor(60,60,60);
   doc.text('Subtotal', pageW-70, y); doc.text(fmt(subtotal), pageW-15, y, {align:'right'});
   y += 6;
+  if(descuentoTotalPDF > 0){
+    doc.setTextColor(168,64,46);
+    doc.text('Descuentos', pageW-70, y); doc.text('−' + fmt(descuentoTotalPDF), pageW-15, y, {align:'right'});
+    y += 6;
+    doc.setTextColor(60,60,60);
+  }
   doc.text('IVA (16%)', pageW-70, y); doc.text(fmt(iva), pageW-15, y, {align:'right'});
   y += 8;
   doc.setDrawColor(20,20,20); doc.line(pageW-70, y-4, pageW-15, y-4);
@@ -600,6 +862,22 @@ function generarPDF(){
   doc.text('Total', pageW-70, y); doc.text(fmt(total), pageW-15, y, {align:'right'});
 
   const pageH = doc.internal.pageSize.getHeight();
+
+  const bonosConTexto = bonos.filter(b=>b.texto);
+  if(bonosConTexto.length){
+    y += 12;
+    if(y > pageH - 30){ doc.addPage(); y = 20; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(34,60,54);
+    doc.text('Bonos incluidos', 15, y);
+    y += 6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(80,80,80);
+    bonosConTexto.forEach(b => {
+      if(y > pageH - 15){ doc.addPage(); y = 20; }
+      const txt = b.condicion ? `• ${b.texto} (${b.condicion})` : `• ${b.texto}`;
+      const lines = doc.splitTextToSize(txt, pageW-30);
+      lines.forEach(line => { doc.text(line, 15, y); y += 4.2; });
+    });
+  }
 
   function addBulletBlock(title, items, color){
     if(!items || !items.length) return;
@@ -641,17 +919,32 @@ function generarPDF(){
 
   // ---- Forma de pago + tabla de pagos ----
   y += 6;
-  const formaPago = document.getElementById('cFormaPago').value;
-  if(formaPago || pagos.length){
+  const formasPagoActivas = formasPago.filter(f=>f.activo);
+  const formaPagoExtra = document.getElementById('cFormaPagoExtra').value;
+  if(formasPagoActivas.length || formaPagoExtra || pagos.length){
     if(y > pageH - 30){ doc.addPage(); y = 20; }
     doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(34,60,54);
     doc.text('Forma de pago', 15, y);
     y += 7;
-    if(formaPago){
+    if(formasPagoActivas.length){
       doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(60,60,60);
-      const spF = doc.splitTextToSize(formaPago, pageW-30);
+      doc.text(formasPagoActivas.map(f=>f.texto).join('  ·  '), 15, y);
+      y += 6;
+    }
+    if(formaPagoExtra){
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(90,90,90);
+      const spF = doc.splitTextToSize(formaPagoExtra, pageW-30);
       doc.text(spF, 15, y);
       y += spF.length*4.3 + 4;
+    }
+    if(formasPagoActivas.some(f=>f.texto==='Transferencia bancaria')){
+      if(y > pageH - 25){ doc.addPage(); y = 20; }
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(34,60,54);
+      doc.text('Datos bancarios', 15, y);
+      y += 4.5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(80,80,80);
+      doc.text(`Banco: ${DATOS_BANCARIOS.banco}   ·   Cuenta: ${DATOS_BANCARIOS.cuenta}   ·   Titular: ${DATOS_BANCARIOS.titular}`, 15, y);
+      y += 7;
     }
     if(pagos.length){
       if(y > pageH - 30){ doc.addPage(); y = 20; }
@@ -705,11 +998,29 @@ function generarPDF(){
   }
 
   y += 4;
+  const condActivasPDF = condiciones.filter(c=>c.activo && c.texto);
+  if(condActivasPDF.length){
+    if(y > pageH - 30){ doc.addPage(); y = 20; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(34,60,54);
+    doc.text('Condiciones', 15, y);
+    y += 5.5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(90,90,90);
+    condActivasPDF.forEach(c => {
+      const lines = doc.splitTextToSize('• ' + c.texto, pageW-30);
+      lines.forEach(line => {
+        if(y > pageH - 12){ doc.addPage(); y = 20; }
+        doc.text(line, 15, y);
+        y += 3.9;
+      });
+    });
+    y += 4;
+  }
+
   const notas = document.getElementById('cNotas').value;
   if(notas){
     if(y > pageH - 30){ doc.addPage(); y = 20; }
     doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(20,20,20);
-    doc.text('Notas y condiciones', 15, y);
+    doc.text('Notas', 15, y);
     y += 5;
     doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(90,90,90);
     const split = doc.splitTextToSize(notas, pageW-30);
@@ -729,14 +1040,17 @@ function generarPDF(){
 function renderPresentacion(){
   const lineas = lineasActuales();
   const subtotal = lineas.reduce((s,l)=>s+l.subtotal, 0);
-  const iva = subtotal * 0.16;
-  const total = subtotal + iva;
+  const descuentoTotalPres = calcularDescuentoTotal(subtotal);
+  const subtotalNetoPres = subtotal - descuentoTotalPres;
+  const iva = subtotalNetoPres * 0.16;
+  const total = subtotalNetoPres + iva;
   const cliente = document.getElementById('cCliente').value || 'Cliente';
   const contacto = document.getElementById('cContacto').value;
   const folio = document.getElementById('cFolio').value || '—';
   const fecha = document.getElementById('cFecha').value || '—';
   const vigencia = document.getElementById('cVigencia').value || '15';
-  const formaPago = document.getElementById('cFormaPago').value;
+  const formasPagoActivas = formasPago.filter(f=>f.activo);
+  const formaPagoExtra = document.getElementById('cFormaPagoExtra').value;
   const notas = document.getElementById('cNotas').value;
 
   const serviciosSeleccionados = Object.keys(seleccion).map(id => servicios.find(s=>s.id===Number(id))).filter(Boolean);
@@ -766,9 +1080,15 @@ function renderPresentacion(){
     </table>
     <div class="totales">
       <div class="fila"><span>Subtotal</span><span class="mono">${fmt(subtotal)}</span></div>
+      ${descuentoTotalPres>0 ? `<div class="fila" style="color:#A8402E;"><span>Descuentos</span><span class="mono">−${fmt(descuentoTotalPres)}</span></div>` : ''}
       <div class="fila"><span>IVA (16%)</span><span class="mono">${fmt(iva)}</span></div>
       <div class="fila total"><span>Total</span><span class="mono">${fmt(total)}</span></div>
     </div>`;
+
+  const bonosConTexto = bonos.filter(b=>b.texto);
+  if(bonosConTexto.length){
+    html += `<div class="pres-h">Bonos incluidos</div><ul style="margin:0; padding-left:18px; font-size:12.5px; color:var(--revenue);">${bonosConTexto.map(b=>`<li style="margin-bottom:3px;">${esc(b.texto)}${b.condicion?` <span style="color:var(--ink-soft); font-size:11px;">(${esc(b.condicion)})</span>`:''}</li>`).join('')}</ul>`;
+  }
 
   const conAlcance = serviciosSeleccionados.filter(s => (s.descripcionItems&&s.descripcionItems.length) || (s.exclusionesItems&&s.exclusionesItems.length));
   if(conAlcance.length){
@@ -781,11 +1101,15 @@ function renderPresentacion(){
     });
   }
 
-  if(formaPago || pagos.length){
+  if(formasPagoActivas.length || formaPagoExtra || pagos.length){
     html += `<div class="pres-h">Forma de pago</div>`;
-    if(formaPago) html += `<p style="font-size:12.5px;">${esc(formaPago)}</p>`;
+    if(formasPagoActivas.length) html += `<p style="font-size:12.5px; margin-bottom:4px;">${formasPagoActivas.map(f=>esc(f.texto)).join(' · ')}</p>`;
+    if(formaPagoExtra) html += `<p style="font-size:12px; color:var(--ink-soft);">${esc(formaPagoExtra)}</p>`;
+    if(formasPagoActivas.some(f=>f.texto==='Transferencia bancaria')){
+      html += `<p style="font-size:11.5px; color:var(--ink-soft); background:var(--smoke); padding:8px 10px; border-radius:6px; margin-top:6px;"><b>Datos bancarios</b> — Banco: ${esc(DATOS_BANCARIOS.banco)} · Cuenta: ${esc(DATOS_BANCARIOS.cuenta)} · Titular: ${esc(DATOS_BANCARIOS.titular)}</p>`;
+    }
     if(pagos.length){
-      html += `<table><thead><tr><th>Concepto</th><th>Fecha</th><th class="num">Monto</th></tr></thead><tbody>
+      html += `<table style="margin-top:8px;"><thead><tr><th>Concepto</th><th>Fecha</th><th class="num">Monto</th></tr></thead><tbody>
         ${pagos.map(p=>`<tr><td>${esc(p.concepto)}</td><td>${esc(p.fecha)}</td><td class="num">${fmt(p.monto)}</td></tr>`).join('')}
       </tbody></table>`;
     }
@@ -796,8 +1120,13 @@ function renderPresentacion(){
     html += `<div class="pres-h">Cronograma</div><div id="presGanttHolder"></div>`;
   }
 
+  const condActivas = condiciones.filter(c=>c.activo && c.texto);
+  if(condActivas.length){
+    html += `<div class="pres-h">Condiciones</div><ul style="margin:0; padding-left:18px; font-size:11.5px; color:var(--ink-soft);">${condActivas.map(c=>`<li style="margin-bottom:3px;">${esc(c.texto)}</li>`).join('')}</ul>`;
+  }
+
   if(notas){
-    html += `<div class="pres-h">Notas y condiciones</div><p style="font-size:12px; color:var(--ink-soft);">${esc(notas)}</p>`;
+    html += `<div class="pres-h">Notas</div><p style="font-size:12px; color:var(--ink-soft);">${esc(notas)}</p>`;
   }
 
   doc.innerHTML = html;
@@ -857,6 +1186,10 @@ document.getElementById('btnPdf').addEventListener('click', generarPDF);
 renderPagos();
 renderGanttEditor();
 renderProblemas();
+renderCondiciones();
+renderFormaPago();
+renderBonos();
+renderDescuentos();
 cargarServicios();
 </script>
 </body>
