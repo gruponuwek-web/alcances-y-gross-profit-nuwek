@@ -166,6 +166,12 @@
     </div>
 
     <div class="panel">
+      <h2>Introducción</h2>
+      <p class="lead">Texto libre — bienvenida, referencia a la cita/llamada previa, etc. Aparece justo después del nombre del cliente.</p>
+      <div class="field"><textarea id="cIntro" rows="4" placeholder="Ej. De acuerdo a la cita que tuvimos el día..."></textarea></div>
+    </div>
+
+    <div class="panel">
       <h2>Problemas detectados</h2>
       <p class="lead">Lo que identificaste con el cliente antes de proponer — le da contexto a la cotización.</p>
       <div id="problemasList"></div>
@@ -457,6 +463,14 @@ function toggleServicio(sid){
   else seleccion[sid] = { cantidad: 1, addons: new Set(), fechaInicio:'', fechaFin:'' };
   renderServicios();
   renderResumen();
+}
+
+function serviciosSeleccionadosOrdenados(){
+  return Object.keys(seleccion)
+    .map(id => ({ s: servicios.find(x=>x.id===Number(id)), sel: seleccion[id] }))
+    .filter(x => x.s)
+    .sort((a,b) => new Date(a.sel.fechaInicio||'9999-12-31') - new Date(b.sel.fechaInicio||'9999-12-31'))
+    .map(x => x.s);
 }
 
 function lineasActuales(){
@@ -794,10 +808,18 @@ function generarPDF(){
   doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(100,100,100);
   if(contacto) doc.text('At\'n: ' + contacto, 15, 55);
 
-  let yTabla = 62;
+  let yTabla = 60;
+  const intro = document.getElementById('cIntro').value;
+  if(intro){
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(60,60,60);
+    const introLines = doc.splitTextToSize(limpiarTexto(intro), pageW-30);
+    doc.text(introLines, 15, yTabla);
+    yTabla += introLines.length*4.3 + 5;
+  }
+
   const problemasConTexto = problemas.filter(p => p.texto);
   if(problemasConTexto.length){
-    let yp = 60;
+    let yp = yTabla;
     doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(34,60,54);
     doc.text('Problemas detectados', 15, yp);
     yp += 5.5;
@@ -879,7 +901,7 @@ function generarPDF(){
   }
 
   y += 12;
-  const serviciosSeleccionados = Object.keys(seleccion).map(id => servicios.find(s=>s.id===Number(id))).filter(Boolean);
+  const serviciosSeleccionados = serviciosSeleccionadosOrdenados();
   const conAlcance = serviciosSeleccionados.filter(s => (s.descripcionItems&&s.descripcionItems.length) || (s.exclusionesItems&&s.exclusionesItems.length));
   if(conAlcance.length){
     if(y > pageH - 30){ doc.addPage(); y = 20; }
@@ -1016,9 +1038,10 @@ function renderPresentacion(){
   const vigencia = document.getElementById('cVigencia').value || '15';
   const formasPagoActivas = formasPago.filter(f=>f.activo);
   const formaPagoExtra = document.getElementById('cFormaPagoExtra').value;
+  const intro = document.getElementById('cIntro').value;
   const notas = document.getElementById('cNotas').value;
 
-  const serviciosSeleccionados = Object.keys(seleccion).map(id => servicios.find(s=>s.id===Number(id))).filter(Boolean);
+  const serviciosSeleccionados = serviciosSeleccionadosOrdenados();
 
   const doc = document.getElementById('presDoc');
   if(!lineas.length){
@@ -1033,6 +1056,8 @@ function renderPresentacion(){
     </div>
     <div class="pres-cliente">${esc(cliente)}</div>
     ${contacto ? `<div style="font-size:12px; color:var(--ink-soft);">At'n: ${esc(contacto)}</div>` : ''}
+
+    ${intro ? `<p style="font-size:12.5px; margin-top:10px; white-space:pre-wrap;">${esc(intro)}</p>` : ''}
 
     ${problemas.filter(p=>p.texto).length ? `
     <div class="pres-h">Problemas detectados</div>
@@ -1128,6 +1153,7 @@ function snapshotEstado(){
     fecha: document.getElementById('cFecha').value,
     vigencia: document.getElementById('cVigencia').value,
     formaPagoExtra: document.getElementById('cFormaPagoExtra').value,
+    intro: document.getElementById('cIntro').value,
     notas: document.getElementById('cNotas').value,
     seleccion: seleccionPlano,
     problemas, pagos, ganttItems, condiciones, formasPago, bonos, descuentos,
@@ -1141,6 +1167,7 @@ function restaurarEstado(snap){
   document.getElementById('cFecha').value = snap.fecha || '';
   document.getElementById('cVigencia').value = snap.vigencia || '15';
   document.getElementById('cFormaPagoExtra').value = snap.formaPagoExtra || '';
+  document.getElementById('cIntro').value = snap.intro || '';
   document.getElementById('cNotas').value = snap.notas || '';
 
   seleccion = {};
