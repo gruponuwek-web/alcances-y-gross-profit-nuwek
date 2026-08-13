@@ -156,6 +156,7 @@ function seedData(){
       id, nombre, categoria, precio, maxClientes, unidad,
       costoFijoExterno: costoFijoExterno||0, costoVarExterno: costoVarExterno||0, notaExterno: notaExterno||'',
       lineas: lineas.map(l => ({id:newId(), personaId:l[0], tarea:l[1], horas:l[2], tipo:l[3]})),
+      resumen: extra.resumen || '',
       descripcionItems: (extra.descripcion||[]).map(t => ({id:newId(), texto:t})),
       exclusionesItems: (extra.exclusiones||[]).map(t => ({id:newId(), texto:t})),
       addons: (extra.addons||[]).map(a => ({id:newId(), nombre:a[0], descripcion:a[1], precio:a[2], costo:a[3]})),
@@ -171,6 +172,7 @@ function seedData(){
     [P['Creator 3'], 'Producción de contenido', HORAS_MES, 'fijo'],
     [P['Trafficker'], 'Gestión de pauta y campañas', HORAS_MES, 'fijo'],
   ], 0, 0, '', {
+    resumen: 'Gestión mensual de contenido y campañas pagadas en redes sociales para generar presencia digital constante.',
     descripcion: [
       '14 piezas de contenido/mes bajo calendario de publicación (incluye videos de hasta 120 segundos dentro de esas 14 piezas, no como producción adicional)',
       'Gestión de 3 campañas pagadas incluidas: 1 Google Ads, 1 Meta alcance/tráfico, 1 Meta mensajes a WhatsApp',
@@ -199,6 +201,7 @@ function seedData(){
   servicio('Go High Level (GHL)', 'Marketing', 799, 12, 'cliente', [
     [P['Michelle'], 'Instalación de cuenta nueva', 4.42, 'unico'],
   ], 1700, 0, 'Licencia de plataforma (agencia) — fija, no ligada a persona', {
+    resumen: 'CRM y automatización comercial para centralizar vendedores, pipelines y mensajes de WhatsApp en un solo lugar.',
     descripcion: [
       'CRM completo, vendedores y pipelines ilimitados',
       'WhatsApp API con 1,000 mensajes/mes incluidos',
@@ -229,6 +232,7 @@ function seedData(){
     [P['Carlos'], 'Diseño de ejercicios (6h)', 6, 'variable'],
     [P['Michelle'], 'Prep. de portales de ejercicios (6h)', 6, 'variable'],
   ], 0, 0, '', {
+    resumen: 'Capacitación intensiva de habilitación comercial para equipos de venta.',
     descripcion: [
       'Capacitación de 12 horas, dividida en 6 sesiones de 2 horas, impartida por Carlos',
       'Material de apoyo incluido',
@@ -249,6 +253,7 @@ function seedData(){
     [P['Carlos'], 'Diseño del curso (6h)', 6, 'variable'],
     [P['Michelle'], 'Prep. de portales de ejercicios (6h)', 6, 'variable'],
   ], 0, 0, '', {
+    resumen: 'Capacitación de habilidades de liderazgo para mandos medios y dirección.',
     descripcion: [
       'Capacitación de 8 horas, dividida en 4 sesiones de 2 horas, impartida por Carlos',
       'Presentaciones estándar de contenido',
@@ -266,6 +271,7 @@ function seedData(){
     [P['Carlos'], 'Capacitación (8h/mes)', 8, 'variable'],
     [P['Yunuen'], 'Coaching a vendedores (24h/mes)', 24, 'variable'],
   ], 0, 0, '', {
+    resumen: 'Método de 4 meses que profesionaliza al equipo de venta con capacitación y coaching individual.',
     descripcion: [
       'Método de evaluación y coaching de 4 meses de duración',
       'Carlos dedica 8h/mes al cliente',
@@ -281,6 +287,7 @@ function seedData(){
 
   servicio('La Inteligencia EVA+ (Portal)', 'Ventas', 7500, 12, 'cliente', [
   ], 0, 500, 'Bono mensual de mantenimiento por cliente activo', {
+    resumen: 'Portal de continuidad para que el equipo del cliente siga usando la inteligencia de EVA+ después del proyecto.',
     descripcion: [
       'Acceso al portal de inteligencia EVA+ una vez concluido un proyecto de EVA+ o SBOS',
       'Herramienta de continuidad post-proyecto',
@@ -293,6 +300,7 @@ function seedData(){
   });
 
   servicio('Playbook de Ventas', 'Ventas', 0, 0, 'cliente', [], 0, 0, 'No se vende aislado — incluido en EVA+', {
+    resumen: 'Proceso comercial documentado que sirve de base para EVA+ y los Simuladores de Venta con IA.',
     descripcion: [
       'Documento con proceso comercial documentado, guiones/objeciones y criterios de calificación de prospectos',
       'Puerta de entrada dentro de EVA+ — de ahí se puede escalar a Simuladores de venta con IA',
@@ -303,6 +311,7 @@ function seedData(){
     addons: [],
   });
   servicio('Simuladores de Venta con IA', 'Ventas', 0, 0, 'cliente', [], 0, 0, 'Pendiente de costeo', {
+    resumen: 'Simulador con IA para practicar conversaciones de venta con distintos perfiles de cliente.',
     descripcion: [
       'Simulador con personas/perfiles de cliente definidos (ej. 4 personas tipo)',
       'Escenarios de negociación',
@@ -322,6 +331,7 @@ function seedData(){
     [P['Carlos'], 'Atención de cuenta (40% de su tiempo)', 0.40*HORAS_MES, 'fijo'],
     [P['Michelle'], 'Atención de cuenta (40% de su tiempo)', 0.40*HORAS_MES, 'fijo'],
   ], 0, 0, '', {
+    resumen: 'Sistema operativo comercial completo — el servicio insignia que integra playbook, EVA+, capacitaciones y simuladores.',
     descripcion: [
       'Implementación del sistema operativo comercial completo (estrategia, proceso, estructura, medición) según los subsistemas aplicables al cliente',
       'Incluye acceso a La Inteligencia EVA+ como herramienta integrada durante el proyecto',
@@ -418,6 +428,7 @@ function normalizarEstado(){
     if(!Array.isArray(s.descripcionItems)) s.descripcionItems = [];
     if(!Array.isArray(s.exclusionesItems)) s.exclusionesItems = [];
     if(!Array.isArray(s.addons)) s.addons = [];
+    if(typeof s.resumen !== 'string') s.resumen = '';
     if(!s.subTab) s.subTab = 'alcance';
   });
 }
@@ -611,6 +622,10 @@ function renderServicios(){
       </div>
       <div class="card-body">
         <div class="fixedcost-row">
+          <label style="min-width:auto;">Descripción breve (resúmenes y mapas)</label>
+          <input type="text" class="s-resumen" value="${esc(s.resumen)}" placeholder="Ej. Sistema operativo comercial completo — el servicio insignia" style="flex:1;">
+        </div>
+        <div class="fixedcost-row">
           <label>Precio al cliente ($/${esc(s.unidad)})</label>
           <input type="number" class="s-precio" value="${s.precio}" min="0" step="100">
           <label style="margin-left:16px;">Máximo de ${esc(s.unidad)}s/mes</label>
@@ -755,7 +770,7 @@ function renderResumen(){
     else if(sinTope) gpCell = `<span class="mono" style="color:#1E6F5C;">${fmt(c.margenUnidad)}/${esc(s.unidad)}</span> <span style="color:#999; font-size:11px;">(sin tope mensual)</span>`;
     else gpCell = `<span style="color:${c.gpMax>=0?'#1E6F5C':'#A8402E'}; font-weight:700;">${fmt(c.gpMax)}</span>`;
     return `<tr>
-      <td>${esc(s.nombre)}</td>
+      <td>${esc(s.nombre)}${s.resumen ? `<br><span style="font-size:10.5px; color:#888; font-weight:400;">${esc(s.resumen)}</span>` : ''}</td>
       <td><span class="badge ${badgeClass(s.categoria)}">${esc(s.categoria)}</span></td>
       <td class="num mono">${pend?'—':fmt(s.precio)}</td>
       <td class="num mono">${s.maxClientes || '—'}</td>
@@ -922,7 +937,9 @@ function renderCrossselling(){
       const c = calcServicio(s);
       const gp = (s.precio>0 && s.maxClientes>0) ? fmt(c.gpMax) : (s.precio>0?'sin tope':'pendiente');
       return `<div style="background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:6px; font-size:12px;">
-        <b>${esc(s.nombre)}</b><br><span class="mono" style="color:#888; font-size:10.5px;">GP: ${gp}</span>
+        <b>${esc(s.nombre)}</b>
+        ${s.resumen ? `<div style="font-size:10.5px; color:#666; margin-top:2px; line-height:1.3;">${esc(s.resumen)}</div>` : ''}
+        <span class="mono" style="color:#888; font-size:10.5px;">GP: ${gp}</span>
       </div>`;
     }).join('');
     const arrow = i < areas.length-1 ? `
@@ -1125,7 +1142,7 @@ function bindEvents(){
     s.addons.push({id:newId(), nombre:'Nuevo add-on', descripcion:'', precio:0, costo:0});
     saveState(); render();
   }));
-  app.querySelectorAll('.s-nombre,.s-categoria,.s-precio,.s-max,.s-fijoext,.s-varext,.s-nota').forEach(inp=>{
+  app.querySelectorAll('.s-nombre,.s-categoria,.s-precio,.s-max,.s-fijoext,.s-varext,.s-nota,.s-resumen').forEach(inp=>{
     inp.addEventListener('input', () => {
       const id = Number(inp.closest('[data-sid]').dataset.sid);
       const s = state.servicios.find(x=>x.id===id);
@@ -1136,6 +1153,7 @@ function bindEvents(){
       if(inp.classList.contains('s-fijoext')) s.costoFijoExterno = Number(inp.value)||0;
       if(inp.classList.contains('s-varext')) s.costoVarExterno = Number(inp.value)||0;
       if(inp.classList.contains('s-nota')) s.notaExterno = inp.value;
+      if(inp.classList.contains('s-resumen')) s.resumen = inp.value;
       saveState();
       renderStatsOnly(s);
     });
@@ -1176,7 +1194,7 @@ function bindEvents(){
   }));
   const addS = document.getElementById('addServicio');
   if(addS) addS.addEventListener('click', ()=>{
-    state.servicios.push({id:newId(), nombre:'Nuevo servicio', categoria:'Marketing', precio:0, maxClientes:0, unidad:'cliente', costoFijoExterno:0, costoVarExterno:0, notaExterno:'', lineas:[], open:true});
+    state.servicios.push({id:newId(), nombre:'Nuevo servicio', categoria:'Marketing', precio:0, maxClientes:0, unidad:'cliente', costoFijoExterno:0, costoVarExterno:0, notaExterno:'', lineas:[], resumen:'', descripcionItems:[], exclusionesItems:[], addons:[], open:true, subTab:'alcance'});
     saveState(); render();
   });
 
