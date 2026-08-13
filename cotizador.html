@@ -654,9 +654,13 @@ document.getElementById('genPagos').addEventListener('click', () => {
   conFechas.forEach(({ sel, s }) => {
     const n = numMesesDuracion(sel.fechaInicio, sel.fechaFin);
     const inicio = new Date(sel.fechaInicio);
+    const diaPago = inicio.getDate(); // el pago cae el mismo día del mes en que arranca el servicio
     const lineaSubtotal = s.precio * (sel.cantidad||1);
     for(let i = 0; i < n; i++){
-      const fechaPago = new Date(inicio.getFullYear(), inicio.getMonth()+i, 5);
+      const anio = inicio.getFullYear();
+      const mes = inicio.getMonth() + i;
+      const diasEnMes = new Date(anio, mes+1, 0).getDate(); // evita que un día 31 se "corra" a otro mes
+      const fechaPago = new Date(anio, mes, Math.min(diaPago, diasEnMes));
       const monto = n === 1 ? lineaSubtotal : Math.round(s.precio);
       pagos.push({
         id: localId(),
