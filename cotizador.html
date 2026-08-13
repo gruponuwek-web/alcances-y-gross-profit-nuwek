@@ -251,7 +251,7 @@
         <div class="fila"><span>IVA (16%)</span><span class="mono" id="rIva">$0</span></div>
         <div class="fila total"><span>Total</span><span class="mono" id="rTotal">$0</span></div>
       </div>
-      <div id="rDescCondNote" style="display:none; font-size:11.5px; color:var(--ink-soft); background:var(--smoke); padding:8px 10px; border-radius:6px; margin-top:6px;"></div>
+      <div id="rDescCondNote" style="display:none; font-size:11.5px; color:var(--slate); background:var(--yellow); padding:10px 12px; border-radius:6px; margin-top:6px;"></div>
       <button class="btn btn-pdf" id="btnPdf">↓ Descargar PDF</button>
       <button class="btn btn-pdf" id="btnGuardar" style="background:var(--revenue); margin-top:8px;">💾 Guardar cotización</button>
       <div id="guardarMsg" style="font-size:11.5px; margin-top:8px; text-align:center;"></div>
@@ -533,9 +533,7 @@ function renderResumen(){
   if(noteEl){
     if(condicionales.length){
       noteEl.style.display = 'block';
-      noteEl.innerHTML = '<b>Podría aplicar</b> (no está sumado en el total de arriba):<br>' + condicionales.map(c =>
-        `• ${esc(c.texto||'Descuento')}${c.servicio?` (${esc(c.servicio)})`:''} — ${fmt(c.monto)}${c.condicion?` · ${esc(c.condicion)}`:''}`
-      ).join('<br>');
+      noteEl.innerHTML = '<b>Posible descuento:</b><br>' + condicionales.map(c => `• ${esc(c.frase)}`).join('<br>');
     } else {
       noteEl.style.display = 'none';
     }
@@ -662,10 +660,17 @@ function calcularDescuentoTotal(subtotalBruto){
   return descuentos.filter(d=>d.modo==='aplicado').reduce((sum,d) => sum + montoDescuento(d, subtotalBruto), 0);
 }
 
+function fraseDescuentoCondicional(d, subtotalBruto){
+  const valorTxt = d.tipo === '%' ? `${d.valor}%` : fmt(d.valor);
+  const servicioTxt = d.servicioId ? ((servicios.find(x=>x.id===Number(d.servicioId))||{}).nombre || 'el servicio') : 'toda la cotización';
+  const condTxt = d.condicion ? d.condicion : 'se cumpla la condición acordada';
+  const monto = montoDescuento(d, subtotalBruto);
+  return `Aplica ${valorTxt} de descuento en ${servicioTxt} si ${condTxt} (≈ ${fmt(monto)}).`;
+}
+
 function descuentosCondicionalesInfo(subtotalBruto){
   return descuentos.filter(d=>d.modo!=='aplicado' && (d.texto||d.valor)).map(d => ({
-    texto: d.texto, condicion: d.condicion, monto: montoDescuento(d, subtotalBruto),
-    servicio: d.servicioId ? (servicios.find(x=>x.id===Number(d.servicioId))||{}).nombre : null,
+    frase: fraseDescuentoCondicional(d, subtotalBruto),
   }));
 }
 
@@ -922,20 +927,26 @@ function generarPDF(){
   const condicionalesPDF = descuentosCondicionalesInfo(subtotal);
   if(condicionalesPDF.length){
     y += 10;
-    if(y > pageH - 25){ doc.addPage(); y = 20; }
-    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(80,80,80);
-    doc.text('Podría aplicar (no está sumado en el total de arriba):', 15, y);
-    y += 4.5;
-    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(100,100,100);
+    const headerTxt = 'Posible descuento:';
+    const bodyLines = [];
     condicionalesPDF.forEach(c => {
-      const txt = `• ${c.texto||'Descuento'}${c.servicio?` (${c.servicio})`:''} - ${fmt(c.monto)}${c.condicion?` · ${c.condicion}`:''}`;
-      const lines = doc.splitTextToSize(limpiarTexto(txt), pageW-30);
-      lines.forEach(line => {
-        if(y > pageH - 15){ doc.addPage(); y = 20; }
-        doc.text(line, 15, y);
-        y += 4.2;
-      });
+      const lines = doc.splitTextToSize(limpiarTexto('• ' + c.frase), pageW-40);
+      lines.forEach(l => bodyLines.push(l));
     });
+    const boxH = 6 + bodyLines.length*4.3 + 5;
+    if(y + boxH > pageH - 15){ doc.addPage(); y = 20; }
+
+    doc.setFillColor(243,218,93); // amarillo Nuwek
+    doc.roundedRect(15, y, pageW-30, boxH, 2, 2, 'F');
+
+    let ty = y + 6;
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(34,60,54);
+    doc.text(headerTxt, 20, ty);
+    ty += 4.6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(34,60,54);
+    bodyLines.forEach(line => { doc.text(line, 20, ty); ty += 4.3; });
+
+    y += boxH;
   }
 
   const bonosConTexto = bonos.filter(b=>b.texto);
@@ -1149,9 +1160,9 @@ function renderPresentacion(){
 
   const condicionalesPres = descuentosCondicionalesInfo(subtotal);
   if(condicionalesPres.length){
-    html += `<div style="font-size:11.5px; color:var(--ink-soft); background:var(--smoke); padding:8px 10px; border-radius:6px; margin-top:6px;">
-      <b>Podría aplicar</b> (no está sumado en el total de arriba):<br>
-      ${condicionalesPres.map(c => `• ${esc(c.texto||'Descuento')}${c.servicio?` (${esc(c.servicio)})`:''} — ${fmt(c.monto)}${c.condicion?` · ${esc(c.condicion)}`:''}`).join('<br>')}
+    html += `<div style="font-size:11.5px; color:var(--slate); background:var(--yellow); padding:10px 12px; border-radius:6px; margin-top:6px;">
+      <b>Posible descuento:</b><br>
+      ${condicionalesPres.map(c => `• ${esc(c.frase)}`).join('<br>')}
     </div>`;
   }
 
