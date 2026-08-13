@@ -463,6 +463,7 @@ function toggleServicio(sid){
   else seleccion[sid] = { cantidad: 1, addons: new Set(), fechaInicio:'', fechaFin:'' };
   renderServicios();
   renderResumen();
+  renderDescuentos();
 }
 
 function serviciosSeleccionadosOrdenados(){
@@ -480,10 +481,11 @@ function lineasActuales(){
     const s = servicios.find(x=>x.id===sid);
     if(!s) return;
     const sel = seleccion[sid];
-    const lineas = [{ nombre: s.nombre, cantidad: sel.cantidad, precio: s.precio, subtotal: s.precio*sel.cantidad, unidad: s.unidad }];
+    const esMeses = !!(sel.fechaInicio && sel.fechaFin);
+    const lineas = [{ nombre: s.nombre, cantidad: sel.cantidad, cantidadTexto: esMeses ? (sel.cantidad + (sel.cantidad===1?' mes':' meses')) : String(sel.cantidad), precio: s.precio, subtotal: s.precio*sel.cantidad, unidad: s.unidad, servicioId: sid }];
     sel.addons.forEach(aid => {
       const a = (s.addons||[]).find(x=>x.id===aid);
-      if(a) lineas.push({ nombre: '+ ' + a.nombre, cantidad: 1, precio: a.precio, subtotal: a.precio, unidad: 'add-on' });
+      if(a) lineas.push({ nombre: '+ ' + a.nombre, cantidad: 1, cantidadTexto: '1', precio: a.precio, subtotal: a.precio, unidad: 'add-on', servicioId: sid });
     });
     grupos.push({ fechaInicio: sel.fechaInicio || '9999-12-31', lineas });
   });
@@ -500,7 +502,7 @@ function renderResumen(){
     tbody.innerHTML = lineas.map(l => `
       <tr>
         <td>${esc(l.nombre)}</td>
-        <td class="num">${l.cantidad}</td>
+        <td class="num">${l.cantidadTexto}</td>
         <td class="num">${fmt(l.precio)}</td>
         <td class="num">${fmt(l.subtotal)}</td>
         <td></td>
@@ -577,19 +579,28 @@ document.getElementById('addBono').addEventListener('click', () => {
 
 function renderDescuentos(){
   const el = document.getElementById('descuentosList');
+  const opcionesServicio = Object.keys(seleccion).map(sid => {
+    const s = servicios.find(x=>x.id===Number(sid));
+    return s ? { sid, nombre: s.nombre } : null;
+  }).filter(Boolean);
+
   el.innerHTML = descuentos.map(d => `
     <div class="row-editable descuento-row" data-id="${d.id}">
       <input type="checkbox" class="d-activo" ${d.activo?'checked':''} title="Aplicar al total">
-      <input type="text" placeholder="Descripción (ej. Descuento por 3+ servicios)" class="d-texto" value="${esc(d.texto)}">
+      <input type="text" placeholder="Descripción (ej. Descuento por 3+ Diagnósticos)" class="d-texto" value="${esc(d.texto)}">
       <select class="d-tipo">
         <option value="%" ${d.tipo==='%'?'selected':''}>%</option>
         <option value="$" ${d.tipo==='$'?'selected':''}>$</option>
       </select>
       <input type="number" class="d-valor" min="0" step="1" value="${d.valor}">
+      <select class="d-servicio">
+        <option value="">Toda la cotización</option>
+        ${opcionesServicio.map(o => `<option value="${o.sid}" ${String(d.servicioId)===o.sid?'selected':''}>Solo: ${esc(o.nombre)}</option>`).join('')}
+      </select>
       <input type="text" placeholder="Restricción (ej. válido hasta 30/ago)" class="d-cond desc-cond" value="${esc(d.condicion)}">
       <button class="btn-del" data-del-descuento="${d.id}">✕</button>
     </div>`).join('') || '<p class="empty-note">Sin descuentos definidos</p>';
-  el.querySelectorAll('.d-activo,.d-texto,.d-tipo,.d-valor,.d-cond').forEach(inp => inp.addEventListener('input', () => {
+  el.querySelectorAll('.d-activo,.d-texto,.d-tipo,.d-valor,.d-cond,.d-servicio').forEach(inp => inp.addEventListener('input', () => {
     const id = Number(inp.closest('[data-id]').dataset.id);
     const d = descuentos.find(x=>x.id===id);
     if(inp.classList.contains('d-activo')) d.activo = inp.checked;
@@ -597,6 +608,7 @@ function renderDescuentos(){
     if(inp.classList.contains('d-tipo')) d.tipo = inp.value;
     if(inp.classList.contains('d-valor')) d.valor = Number(inp.value)||0;
     if(inp.classList.contains('d-cond')) d.condicion = inp.value;
+    if(inp.classList.contains('d-servicio')) d.servicioId = inp.value || null;
     renderResumen();
   }));
   el.querySelectorAll('[data-del-descuento]').forEach(btn => btn.addEventListener('click', () => {
@@ -605,13 +617,24 @@ function renderDescuentos(){
   }));
 }
 document.getElementById('addDescuento').addEventListener('click', () => {
-  descuentos.push({ id: localId(), texto:'', tipo:'%', valor:0, condicion:'', activo:true });
+  descuentos.push({ id: localId(), texto:'', tipo:'%', valor:0, condicion:'', activo:true, servicioId:null });
   renderDescuentos();
 });
 
+function subtotalPorServicio(){
+  const map = {};
+  Object.keys(seleccion).forEach(sid => {
+    const s = servicios.find(x=>x.id===Number(sid));
+    if(s) map[sid] = s.precio * seleccion[sid].cantidad;
+  });
+  return map;
+}
+
 function calcularDescuentoTotal(subtotalBruto){
+  const porServicio = subtotalPorServicio();
   return descuentos.filter(d=>d.activo).reduce((sum,d) => {
-    if(d.tipo === '%') return sum + subtotalBruto * (d.valor/100);
+    const base = d.servicioId ? (porServicio[d.servicioId]||0) : subtotalBruto;
+    if(d.tipo === '%') return sum + base * (d.valor/100);
     return sum + d.valor;
   }, 0);
 }
@@ -831,7 +854,7 @@ function generarPDF(){
     yTabla = yp + 6;
   }
 
-  const body = lineas.map(l => [l.nombre, String(l.cantidad), fmt(l.precio), fmt(l.subtotal)]);
+  const body = lineas.map(l => [l.nombre, l.cantidadTexto, fmt(l.precio), fmt(l.subtotal)]);
   doc.autoTable({
     startY: yTabla,
     head: [['Concepto', 'Cant.', 'Precio', 'Subtotal']],
@@ -839,7 +862,7 @@ function generarPDF(){
     theme: 'grid',
     headStyles: { fillColor: [34,60,54], textColor: [255,255,255], fontStyle:'bold' },
     styles: { fontSize: 9.5, cellPadding: 3 },
-    columnStyles: { 1:{halign:'right', cellWidth:20}, 2:{halign:'right', cellWidth:30}, 3:{halign:'right', cellWidth:30} },
+    columnStyles: { 1:{halign:'right', cellWidth:26}, 2:{halign:'right', cellWidth:28}, 3:{halign:'right', cellWidth:28} },
   });
 
   let y = doc.lastAutoTable.finalY + 8;
@@ -854,7 +877,7 @@ function generarPDF(){
   y += 6;
   if(descuentoTotalPDF > 0){
     doc.setTextColor(168,64,46);
-    doc.text('Descuentos', pageW-70, y); doc.text('−' + fmt(descuentoTotalPDF), pageW-15, y, {align:'right'});
+    doc.text('Descuentos', pageW-70, y); doc.text('-' + fmt(descuentoTotalPDF), pageW-15, y, {align:'right'});
     y += 6;
     doc.setTextColor(60,60,60);
   }
@@ -1066,7 +1089,7 @@ function renderPresentacion(){
     <div class="pres-h">Servicios cotizados</div>
     <table>
       <thead><tr><th>Concepto</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Subtotal</th></tr></thead>
-      <tbody>${lineas.map(l=>`<tr><td>${esc(l.nombre)}</td><td class="num">${l.cantidad}</td><td class="num">${fmt(l.precio)}</td><td class="num">${fmt(l.subtotal)}</td></tr>`).join('')}</tbody>
+      <tbody>${lineas.map(l=>`<tr><td>${esc(l.nombre)}</td><td class="num">${l.cantidadTexto}</td><td class="num">${fmt(l.precio)}</td><td class="num">${fmt(l.subtotal)}</td></tr>`).join('')}</tbody>
     </table>
     <div class="totales">
       <div class="fila"><span>Subtotal</span><span class="mono">${fmt(subtotal)}</span></div>
