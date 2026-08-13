@@ -445,19 +445,21 @@ function toggleServicio(sid){
 }
 
 function lineasActuales(){
-  const lineas = [];
+  const grupos = [];
   Object.keys(seleccion).forEach(sidStr => {
     const sid = Number(sidStr);
     const s = servicios.find(x=>x.id===sid);
     if(!s) return;
     const sel = seleccion[sid];
-    lineas.push({ nombre: s.nombre, cantidad: sel.cantidad, precio: s.precio, subtotal: s.precio*sel.cantidad, unidad: s.unidad });
+    const lineas = [{ nombre: s.nombre, cantidad: sel.cantidad, precio: s.precio, subtotal: s.precio*sel.cantidad, unidad: s.unidad }];
     sel.addons.forEach(aid => {
       const a = (s.addons||[]).find(x=>x.id===aid);
       if(a) lineas.push({ nombre: '+ ' + a.nombre, cantidad: 1, precio: a.precio, subtotal: a.precio, unidad: 'add-on' });
     });
+    grupos.push({ fechaInicio: sel.fechaInicio || '9999-12-31', lineas });
   });
-  return lineas;
+  grupos.sort((a,b) => new Date(a.fechaInicio) - new Date(b.fechaInicio));
+  return grupos.flatMap(g => g.lineas);
 }
 
 function renderResumen(){
@@ -589,6 +591,7 @@ function calcularDescuentoTotal(subtotalBruto){
    TABLA DE PAGOS
    ============================================================ */
 function renderPagos(){
+  pagos.sort((a,b) => new Date(a.fecha||'9999-12-31') - new Date(b.fecha||'9999-12-31'));
   const el = document.getElementById('pagosList');
   el.innerHTML = pagos.map(p => `
     <div class="row-editable pago-row" data-id="${p.id}">
@@ -670,6 +673,7 @@ document.getElementById('genPagos').addEventListener('click', () => {
    CRONOGRAMA (GANTT)
    ============================================================ */
 function renderGanttEditor(){
+  ganttItems.sort((a,b) => new Date(a.inicio||'9999-12-31') - new Date(b.inicio||'9999-12-31'));
   const el = document.getElementById('ganttList');
   el.innerHTML = ganttItems.map(g => `
     <div class="row-editable gantt-row" data-id="${g.id}">
@@ -721,66 +725,19 @@ document.getElementById('genGantt').addEventListener('click', () => {
   renderGanttPreview();
 });
 
-const GANTT_COLORS = ['#FBB03B', '#1E6F5C', '#223C36', '#C97A2B', '#4A6B62', '#F3DA5D'];
-
 function ganttValidos(){
   return ganttItems.filter(g => g.actividad && g.inicio && g.fin && !isNaN(new Date(g.inicio)) && !isNaN(new Date(g.fin)));
 }
 
-function ganttLayout(items){
-  const secciones = [...new Set(items.map(g => g.seccion || 'Sin sección'))];
-  const dates = items.flatMap(g => [new Date(g.inicio), new Date(g.fin)]);
-  const min = new Date(Math.min(...dates));
-  const max = new Date(Math.max(...dates));
-  const totalDays = Math.max(1, (max - min) / 86400000);
-  const rows = [];
-  secciones.forEach((sec, si) => {
-    rows.push({ type:'seccion', label: sec, color: GANTT_COLORS[si % GANTT_COLORS.length] });
-    items.filter(g => (g.seccion || 'Sin sección') === sec).forEach(g => {
-      rows.push({ type:'item', item:g, color: GANTT_COLORS[si % GANTT_COLORS.length] });
-    });
-  });
-  return { rows, min, max, totalDays };
-}
-
 function renderGanttPreview(){
   const el = document.getElementById('ganttPreview');
-  const items = ganttValidos();
-  if(!items.length){ el.innerHTML = '<p class="empty-note">Agrega actividades para ver el diagrama.</p>'; return; }
+  const items = ganttValidos().sort((a,b) => new Date(a.inicio) - new Date(b.inicio));
+  if(!items.length){ el.innerHTML = '<p class="empty-note">Agrega actividades para ver el resumen.</p>'; return; }
 
-  const { rows, min, totalDays } = ganttLayout(items);
-  const rowH = 26, headerH = 26, leftW = 230, chartW = Math.max(400, totalDays*18);
-  const totalW = leftW + chartW + 20;
-  const totalH = headerH + rows.length*rowH + 10;
-  const pxPerDay = chartW / totalDays;
-
-  let svg = `<svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">`;
-  // month gridlines
-  let cursor = new Date(min);
-  cursor.setDate(1); cursor.setMonth(cursor.getMonth()+1);
-  while(cursor <= new Date(min.getTime() + totalDays*86400000)){
-    const x = leftW + ((cursor-min)/86400000)*pxPerDay;
-    svg += `<line x1="${x}" y1="${headerH}" x2="${x}" y2="${totalH-5}" stroke="#E4E3DC" stroke-width="1"/>`;
-    svg += `<text x="${x}" y="16" font-size="9" fill="#888">${cursor.toLocaleDateString('es-MX',{month:'short'})}</text>`;
-    cursor = new Date(cursor); cursor.setMonth(cursor.getMonth()+1);
-  }
-  svg += `<line x1="${leftW}" y1="${headerH}" x2="${leftW}" y2="${totalH-5}" stroke="#223C36" stroke-width="1.2"/>`;
-
-  rows.forEach((r, i) => {
-    const y = headerH + i*rowH;
-    if(r.type === 'seccion'){
-      svg += `<text x="4" y="${y+17}" font-size="11" font-weight="700" fill="#223C36">${escXml(r.label)}</text>`;
-    } else {
-      const g = r.item;
-      const x1 = leftW + ((new Date(g.inicio)-min)/86400000)*pxPerDay;
-      const dur = Math.max(1, (new Date(g.fin)-new Date(g.inicio))/86400000);
-      const w = Math.max(4, dur*pxPerDay);
-      svg += `<text x="14" y="${y+17}" font-size="10" fill="#333">${escXml(g.actividad)}</text>`;
-      svg += `<rect x="${x1}" y="${y+5}" width="${w}" height="14" rx="4" fill="${r.color}"/>`;
-    }
-  });
-  svg += `</svg>`;
-  el.innerHTML = svg;
+  el.innerHTML = `<table>
+    <thead><tr><th>Sección</th><th>Actividad</th><th>Inicio</th><th>Fin</th></tr></thead>
+    <tbody>${items.map(g => `<tr><td>${escXml(g.seccion||'—')}</td><td>${escXml(g.actividad)}</td><td class="mono">${escXml(g.inicio)}</td><td class="mono">${escXml(g.fin)}</td></tr>`).join('')}</tbody>
+  </table>`;
 }
 function escXml(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -962,39 +919,23 @@ function generarPDF(){
     }
   }
 
-  // ---- Cronograma (Gantt) dibujado nativo ----
-  const giPDF = ganttValidos();
+  // ---- Cronograma: tabla simple ordenada por fecha ----
+  const giPDF = ganttValidos().sort((a,b) => new Date(a.inicio) - new Date(b.inicio));
   if(giPDF.length){
     if(y > pageH - 40){ doc.addPage(); y = 20; }
     doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(34,60,54);
     doc.text('Cronograma', 15, y);
-    y += 8;
-
-    const { rows: gRows, min: gMin, totalDays: gDays } = ganttLayout(giPDF);
-    const leftW = 55, chartW = pageW - 30 - leftW, rowH = 6;
-    const pxPerDay = chartW / gDays;
-
-    gRows.forEach(r => {
-      if(y > pageH - 12){ doc.addPage(); y = 20; }
-      if(r.type === 'seccion'){
-        doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(34,60,54);
-        doc.text(r.label, 15, y+4);
-        y += rowH;
-      } else {
-        const g = r.item;
-        doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(60,60,60);
-        const actLines = doc.splitTextToSize(g.actividad, leftW-6);
-        doc.text(actLines[0], 19, y+4);
-        const x1 = 15+leftW + ((new Date(g.inicio)-gMin)/86400000)*pxPerDay;
-        const dur = Math.max(1, (new Date(g.fin)-new Date(g.inicio))/86400000);
-        const w = Math.max(1.5, dur*pxPerDay);
-        const c = r.color.match(/\w\w/g).map(h=>parseInt(h,16));
-        doc.setFillColor(c[0],c[1],c[2]);
-        doc.roundedRect(x1, y, w, 4.2, 0.8, 0.8, 'F');
-        y += rowH;
-      }
-    });
     y += 6;
+    doc.autoTable({
+      startY: y,
+      head: [['Sección', 'Actividad', 'Inicio', 'Fin']],
+      body: giPDF.map(g => [g.seccion||'—', g.actividad, g.inicio, g.fin]),
+      theme: 'grid',
+      headStyles: { fillColor: [34,60,54], textColor: [255,255,255], fontStyle:'bold' },
+      styles: { fontSize: 8.5, cellPadding: 2.5 },
+      margin: { left: 15, right: 15 },
+    });
+    y = doc.lastAutoTable.finalY + 8;
   }
 
   y += 4;
@@ -1115,9 +1056,11 @@ function renderPresentacion(){
     }
   }
 
-  const gi = ganttValidos();
+  const gi = ganttValidos().sort((a,b) => new Date(a.inicio) - new Date(b.inicio));
   if(gi.length){
-    html += `<div class="pres-h">Cronograma</div><div id="presGanttHolder"></div>`;
+    html += `<div class="pres-h">Cronograma</div>
+    <table><thead><tr><th>Sección</th><th>Actividad</th><th>Inicio</th><th>Fin</th></tr></thead>
+    <tbody>${gi.map(g=>`<tr><td>${esc(g.seccion||'—')}</td><td>${esc(g.actividad)}</td><td class="mono">${esc(g.inicio)}</td><td class="mono">${esc(g.fin)}</td></tr>`).join('')}</tbody></table>`;
   }
 
   const condActivas = condiciones.filter(c=>c.activo && c.texto);
@@ -1130,38 +1073,6 @@ function renderPresentacion(){
   }
 
   doc.innerHTML = html;
-
-  if(gi.length){
-    const { rows, min, totalDays } = ganttLayout(gi);
-    const rowH = 26, headerH = 26, leftW = 230, chartW = Math.max(400, totalDays*18);
-    const totalW = leftW + chartW + 20;
-    const totalH = headerH + rows.length*rowH + 10;
-    const pxPerDay = chartW / totalDays;
-    let svg = `<svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">`;
-    let cursor = new Date(min); cursor.setDate(1); cursor.setMonth(cursor.getMonth()+1);
-    while(cursor <= new Date(min.getTime() + totalDays*86400000)){
-      const x = leftW + ((cursor-min)/86400000)*pxPerDay;
-      svg += `<line x1="${x}" y1="${headerH}" x2="${x}" y2="${totalH-5}" stroke="#E4E3DC" stroke-width="1"/>`;
-      svg += `<text x="${x}" y="16" font-size="9" fill="#888">${cursor.toLocaleDateString('es-MX',{month:'short'})}</text>`;
-      cursor = new Date(cursor); cursor.setMonth(cursor.getMonth()+1);
-    }
-    svg += `<line x1="${leftW}" y1="${headerH}" x2="${leftW}" y2="${totalH-5}" stroke="#223C36" stroke-width="1.2"/>`;
-    rows.forEach((r,i) => {
-      const y = headerH + i*rowH;
-      if(r.type==='seccion'){
-        svg += `<text x="4" y="${y+17}" font-size="11" font-weight="700" fill="#223C36">${escXml(r.label)}</text>`;
-      } else {
-        const g = r.item;
-        const x1 = leftW + ((new Date(g.inicio)-min)/86400000)*pxPerDay;
-        const dur = Math.max(1, (new Date(g.fin)-new Date(g.inicio))/86400000);
-        const w = Math.max(4, dur*pxPerDay);
-        svg += `<text x="14" y="${y+17}" font-size="10" fill="#333">${escXml(g.actividad)}</text>`;
-        svg += `<rect x="${x1}" y="${y+5}" width="${w}" height="14" rx="4" fill="${r.color}"/>`;
-      }
-    });
-    svg += `</svg>`;
-    document.getElementById('presGanttHolder').innerHTML = svg;
-  }
 }
 
 document.getElementById('btnViewArmado').addEventListener('click', () => {
